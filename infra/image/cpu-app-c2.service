@@ -1,0 +1,10 @@
+[Unit]
+Description=IT5404 CPU app (Spring Boot, JDK 25 + AOT cache – cấu hình C2)
+After=network-online.target
+[Service]
+User=app
+WorkingDirectory=/opt/app/ex
+ExecStart=/opt/java/bin/java -XX:+UseSerialGC -Xmx512m -XX:AOTCache=/opt/app/app.aot -jar /opt/app/ex/app.jar
+Restart=always
+[Install]
+WantedBy=multi-user.target

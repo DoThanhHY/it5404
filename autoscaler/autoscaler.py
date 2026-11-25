@@ -323,6 +323,11 @@ def make_api(scaler: Autoscaler):
                 self.send_header("Content-Type", CONTENT_TYPE_LATEST)
                 self.end_headers()
                 self.wfile.write(generate_latest())
+            elif self.path.startswith("/decisions"):   # log quyết định (chỉ đọc) cho trợ lý AI
+                from urllib.parse import urlparse, parse_qs
+                limit = int(parse_qs(urlparse(self.path).query).get("limit", ["100"])[0])
+                lines = scaler.dlog.path.read_text().splitlines()[-limit:]
+                self._json(200, [json.loads(x) for x in lines if x.strip()])
             elif self.path == "/status":
                 c = scaler.cfg
                 self._json(200, {"instances": [s.name for s in scaler.app_servers()],

@@ -29,4 +29,4 @@ haproxy:
   backend: app
   slots: 10
 log_file: /var/log/autoscaler/decisions.jsonl
-api_listen: 127.0.0.1:9180
+api_listen: 0.0.0.0:9180            # mở cho trợ lý AI trên Mac (mạng lab)
