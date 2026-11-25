@@ -2,7 +2,7 @@
 # Chạy toàn bộ phần mở rộng nối tiếp (~5 giờ). Chạy từ Mac: experiments/run-all.sh
 set -uo pipefail
 cd "$(dirname "$0")"
-R=/Users/thanhdo/dientoandammay
+R=$(cd .. && pwd)   # thư mục gốc repo (Lima mount cùng đường dẫn vào VM)
 log(){ echo "[$(date +%H:%M:%S)] $*"; }
 L="limactl shell openstack sudo -u stack -H bash -lc"
 

@@ -10,7 +10,7 @@ images:
   - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-arm64.img"
     arch: aarch64
 mounts:
-  - location: "~/dientoandammay"
+  - location: "~/it5404"          # infra/lima/start.sh tự thay bằng đường dẫn repo thực tế
     writable: true
 networks:
   # vzNAT cấp cho VM một IP 192.168.64.x mà Mac truy cập trực tiếp được (Horizon, Grafana...)
