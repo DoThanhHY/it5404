@@ -49,11 +49,11 @@ b = S.get("rq1_rq2_bench", [])
 if b:
     keys = ["API + lập lịch + tạo VM (đến ACTIVE)", "Boot hệ điều hành + cloud-init", "Chờ đến khi JVM khởi chạy",
             "Khởi động JVM + Spring đến khi sẵn sàng"]
-    body = [r"\begin{tabular}{@{}lrrrrrrr@{}}", r"\toprule",
-            r"Cấu hình & ACTIVE & Boot+cloud-init & Chờ JVM & JVM+Spring & Tổng (trung vị) & p90 & Spring (s) \\",
+    body = [r"\begin{tabular}{@{}lrrrrrr@{}}", r"\toprule",
+            r"Cấu hình & Đến ACTIVE & Boot+cloud-init & JVM+Spring & Tổng (trung vị) & p90 & Spring (s) \\",
             r"\midrule"]
     for r in b:
-        body.append(f"{r['config']} & {f(r[keys[0]])} & {f(r[keys[1]])} & {f(r[keys[2]])} & {f(r[keys[3]])} & "
+        body.append(f"{r['config']} & {f(r[keys[0]])} & {f(r[keys[1]])} & {f(r[keys[3]])} & "
                     f"\\textbf{{{f(r['ready_median'])}}} & {f(r['ready_p90'])} & {f(r['spring_median'])} \\\\")
     body += [r"\bottomrule", r"\end{tabular}"]
     w("rq12.tex", "\n".join(body))

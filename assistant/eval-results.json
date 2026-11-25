@@ -1,0 +1,191 @@
+{
+ "summary": {
+  "model": "qwen3:8b",
+  "accuracy": 0.75,
+  "latency_median_s": 8.25,
+  "latency_p90_s": 15.9,
+  "n": 20
+ },
+ "results": [
+  {
+   "id": 1,
+   "question": "Hiện có bao nhiêu máy ảo nhóm app đang chạy?",
+   "truth": "1 (±0)",
+   "answer": "Hiện có 1 máy ảo nhóm app đang chạy.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 12.6
+  },
+  {
+   "id": 2,
+   "question": "CPU trung bình hiện tại của nhóm máy ảo app là bao nhiêu phần trăm?",
+   "truth": "2.52405 (±5)",
+   "answer": "CPU trung bình hiện tại của nhóm máy ảo app là 2.337% (giờ Việt Nam: 02:03:13 ngày 26/11/2026).",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 8.3
+  },
+  {
+   "id": 3,
+   "question": "Máy ảo nào đang có CPU cao nhất?",
+   "truth": "app-204852",
+   "answer": "Máy ảo có CPU cao nhất là `app-204852` với CPU sử dụng là 14.4% (giờ Việt Nam: 02:03:21 ngày 26/11/2026).",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 9.2
+  },
+  {
+   "id": 4,
+   "question": "Ngưỡng CPU để scale-out hiện tại là bao nhiêu?",
+   "truth": "80 (±0)",
+   "answer": "Ngưỡng CPU để scale-out hiện tại là 80%.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 5.7
+  },
+  {
+   "id": 5,
+   "question": "Ngưỡng CPU để scale-in là bao nhiêu?",
+   "truth": "20 (±0)",
+   "answer": "Ngưỡng CPU để scale-in là 20%.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 5.7
+  },
+  {
+   "id": 6,
+   "question": "Autoscaler cho phép tối đa bao nhiêu máy ảo?",
+   "truth": "4 (±0)",
+   "answer": "Autoscaler cho phép tối đa 4 máy ảo.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 5.8
+  },
+  {
+   "id": 7,
+   "question": "Số máy ảo tối thiểu mà autoscaler luôn giữ là bao nhiêu?",
+   "truth": "1 (±0)",
+   "answer": "Số máy ảo tối thiểu mà autoscaler luôn giữ là 1.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 5.8
+  },
+  {
+   "id": 8,
+   "question": "Lần scale-out gần nhất hoàn tất lúc mấy giờ?",
+   "truth": "01:33",
+   "answer": "Lần scale-out gần nhất hoàn tất lúc 01:33:55 ngày 26/11/2026.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 7.6
+  },
+  {
+   "id": 9,
+   "question": "Lần scale-out gần nhất mất tổng cộng bao nhiêu giây từ lúc quyết định đến khi máy mới nhận request?",
+   "truth": "45.06 (±1)",
+   "answer": "Tổng thời gian từ lúc quyết định scale-out đến khi máy mới nhận request là 45.06 giây.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 7.7
+  },
+  {
+   "id": 10,
+   "question": "Trong lần scale-out gần nhất, giai đoạn nào tốn thời gian nhất?",
+   "truth": "ứng dụng | app | sẵn sàng | ready",
+   "answer": "Giai đoạn tốn thời gian nhất trong lần scale-out gần nhất là **active_to_app_ready** với thời gian là **40.44 giây**.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 8.2
+  },
+  {
+   "id": 11,
+   "question": "Vì sao hệ thống thêm máy ảo ở lần scale-out gần nhất? CPU lúc đó là bao nhiêu?",
+   "truth": "81.6 (±1)",
+   "answer": "Lần scale-out gần nhất bị chặn do đạt giới hạn số lượng máy ảo (max_instances). CPU lúc đó là 74.6% (giờ Việt Nam: 01:34:10 ngày 26/11/2026).",
+   "correct": false,
+   "tool_calls": 1,
+   "latency_s": 8.8
+  },
+  {
+   "id": 12,
+   "question": "Lần scale-in gần nhất đã xóa máy ảo nào?",
+   "truth": "app-013039",
+   "answer": "Lần scale-in gần nhất đã xóa máy ảo có tên **app-013039** (ID: df7b4632-dc82-492d-89c3-b22b14f740b4) vào lúc **01:44:03 ngày 26/11/2026** (giờ Việt Nam).",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 10.5
+  },
+  {
+   "id": 13,
+   "question": "Trong log có bao nhiêu lần scale-out thành công?",
+   "truth": "24 (±0)",
+   "answer": "Có 23 lần scale-out thành công trong log.",
+   "correct": false,
+   "tool_calls": 1,
+   "latency_s": 24.6
+  },
+  {
+   "id": 14,
+   "question": "Trong log có bao nhiêu lần scale-in?",
+   "truth": "22 (±0)",
+   "answer": "Tổng cộng có 25 lần scale-in trong log.",
+   "correct": false,
+   "tool_calls": 1,
+   "latency_s": 26.7
+  },
+  {
+   "id": 15,
+   "question": "Autoscaler có gặp lỗi khi scale không? Nếu có thì lỗi gì?",
+   "truth": "No valid host | 400 | lỗi",
+   "answer": "Autoscaler đã gặp lỗi khi scale. Cụ thể:\n\n1. Lỗi `BadRequestException: 400` xảy ra 3 lần (25/11 18:20, 18:21, 23:04), có thể do CPU quá cao (≥91.1%) và không thể scale-out.\n2. Lỗi `ResourceFailure` (25/11 20:46) do VM bị lỗi và dưới ngưỡng tối thiểu.\n3. Lỗi `No valid host was found` (25/11 20:48) do không đủ tài nguyên để tạo VM mới.\n\nHãy kiểm tra tài nguyên và ngưỡng autoscaler.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 15.9
+  },
+  {
+   "id": 16,
+   "question": "Địa chỉ IP của máy ảo app được tạo gần đây nhất là gì?",
+   "truth": "10.10.0.58",
+   "answer": "Máy ảo app được tạo gần đây nhất có địa chỉ IP là **10.10.0.58**.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 7.0
+  },
+  {
+   "id": 17,
+   "question": "Hiện tại có bao nhiêu request mỗi giây vào endpoint /work?",
+   "truth": "0 (±2)",
+   "answer": "Hiện tại không có request nào vào endpoint /work trong 1 phút qua.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 6.7
+  },
+  {
+   "id": 18,
+   "question": "Prometheus đang giám sát được bao nhiêu máy ảo (target node đang up)?",
+   "truth": "1 (±0)",
+   "answer": "Prometheus đang giám sát 1.000 máy ảo (target node đang up) tại thời điểm 02:05:57 ngày 26/11/2026.",
+   "correct": true,
+   "tool_calls": 1,
+   "latency_s": 8.2
+  },
+  {
+   "id": 19,
+   "question": "Nếu hạ ngưỡng scale-out xuống 70% thì trong 60 phút qua sẽ có bao nhiêu lần scale-out?",
+   "truth": "5 (±0)",
+   "answer": "Nếu hạ ngưỡng scale-out xuống 70%, trong 60 phút qua sẽ có 1 lần scale-out và 11 lần scale-in.",
+   "correct": false,
+   "tool_calls": 1,
+   "latency_s": 11.3
+  },
+  {
+   "id": 20,
+   "question": "Độ trễ p95 cao nhất của /work trong 30 phút qua là bao nhiêu mili giây?",
+   "truth": "59.5605 (±8.9)",
+   "answer": "Độ trễ p95 cao nhất của /work trong 30 phút qua là 200 mili giây (tại 01:36 - 02:06).",
+   "correct": false,
+   "tool_calls": 1,
+   "latency_s": 11.2
+  }
+ ]
+}

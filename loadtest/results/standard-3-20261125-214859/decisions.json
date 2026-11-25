@@ -1,0 +1,90 @@
+[
+ {
+  "ts": "2026-11-25T14:56:56.786+00:00",
+  "event": "scale_out_start",
+  "name": "app-215656",
+  "cpu": 89.8,
+  "n": 1
+ },
+ {
+  "ts": "2026-11-25T14:57:03.561+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "firing",
+  "summary": "CPU trung bình nhóm app 92% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T14:57:39.930+00:00",
+  "event": "scale_out_done",
+  "name": "app-215656",
+  "server_id": "a118b71d-ad0e-4575-9235-ce0b1cd65022",
+  "ip": "10.10.0.53",
+  "haproxy_slot": "app2",
+  "phases_s": {
+   "api": 0.66,
+   "boot_to_active": 4.27,
+   "active_to_app_ready": 38.21,
+   "lb_register": 0.0,
+   "total": 43.14
+  }
+ },
+ {
+  "ts": "2026-11-25T14:58:42.214+00:00",
+  "event": "scale_out_start",
+  "name": "app-215842",
+  "cpu": 86.9,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T14:59:27.065+00:00",
+  "event": "scale_out_done",
+  "name": "app-215842",
+  "server_id": "ee71906a-94a0-4bbb-8f29-16b979186b4f",
+  "ip": "10.10.0.64",
+  "haproxy_slot": "app3",
+  "phases_s": {
+   "api": 0.26,
+   "boot_to_active": 4.3,
+   "active_to_app_ready": 40.29,
+   "lb_register": 0.0,
+   "total": 44.85
+  }
+ },
+ {
+  "ts": "2026-11-25T15:00:32.942+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 80% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T15:06:29.202+00:00",
+  "event": "scale_in_start",
+  "name": "app-215842",
+  "server_id": "ee71906a-94a0-4bbb-8f29-16b979186b4f",
+  "ip": "10.10.0.64",
+  "cpu": 13.2,
+  "n": 3
+ },
+ {
+  "ts": "2026-11-25T15:06:31.378+00:00",
+  "event": "scale_in_done",
+  "name": "app-215842",
+  "server_id": "ee71906a-94a0-4bbb-8f29-16b979186b4f"
+ },
+ {
+  "ts": "2026-11-25T15:09:15.193+00:00",
+  "event": "scale_in_start",
+  "name": "app-215656",
+  "server_id": "a118b71d-ad0e-4575-9235-ce0b1cd65022",
+  "ip": "10.10.0.53",
+  "cpu": 17.9,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T15:09:17.362+00:00",
+  "event": "scale_in_done",
+  "name": "app-215656",
+  "server_id": "a118b71d-ad0e-4575-9235-ce0b1cd65022"
+ }
+]

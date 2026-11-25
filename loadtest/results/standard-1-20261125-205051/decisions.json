@@ -1,0 +1,104 @@
+[
+ {
+  "ts": "2026-11-25T13:58:41.390+00:00",
+  "event": "scale_out_start",
+  "name": "app-205841",
+  "cpu": 87.8,
+  "n": 1
+ },
+ {
+  "ts": "2026-11-25T13:58:54.976+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "firing",
+  "summary": "CPU trung bình nhóm app 92% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T13:59:25.492+00:00",
+  "event": "scale_out_done",
+  "name": "app-205841",
+  "server_id": "d3a0d95e-2bf0-423a-84d0-596281a2e748",
+  "ip": "10.10.0.74",
+  "haproxy_slot": "app2",
+  "phases_s": {
+   "api": 0.55,
+   "boot_to_active": 4.32,
+   "active_to_app_ready": 39.23,
+   "lb_register": 0.0,
+   "total": 44.1
+  }
+ },
+ {
+  "ts": "2026-11-25T14:00:26.974+00:00",
+  "event": "scale_out_start",
+  "name": "app-210026",
+  "cpu": 88.4,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T14:01:16.148+00:00",
+  "event": "scale_out_done",
+  "name": "app-210026",
+  "server_id": "967164ea-7d5e-4469-b4f8-077edeaa19f4",
+  "ip": "10.10.0.87",
+  "haproxy_slot": "app3",
+  "phases_s": {
+   "api": 0.38,
+   "boot_to_active": 4.27,
+   "active_to_app_ready": 44.52,
+   "lb_register": 0.0,
+   "total": 49.17
+  }
+ },
+ {
+  "ts": "2026-11-25T14:02:24.872+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 81% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T14:08:30.850+00:00",
+  "event": "scale_in_start",
+  "name": "app-210026",
+  "server_id": "967164ea-7d5e-4469-b4f8-077edeaa19f4",
+  "ip": "10.10.0.87",
+  "cpu": 12.5,
+  "n": 3
+ },
+ {
+  "ts": "2026-11-25T14:08:34.000+00:00",
+  "event": "scale_in_done",
+  "name": "app-210026",
+  "server_id": "967164ea-7d5e-4469-b4f8-077edeaa19f4"
+ },
+ {
+  "ts": "2026-11-25T14:08:44.599+00:00",
+  "event": "alert",
+  "name": "AppCpuLow",
+  "status": "firing",
+  "summary": "CPU trung bình nhóm app 14% ≤ 20% – sắp scale-in"
+ },
+ {
+  "ts": "2026-11-25T14:09:14.596+00:00",
+  "event": "alert",
+  "name": "AppCpuLow",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 20% ≤ 20% – sắp scale-in"
+ },
+ {
+  "ts": "2026-11-25T14:11:18.205+00:00",
+  "event": "scale_in_start",
+  "name": "app-205841",
+  "server_id": "d3a0d95e-2bf0-423a-84d0-596281a2e748",
+  "ip": "10.10.0.74",
+  "cpu": 19.1,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T14:11:20.388+00:00",
+  "event": "scale_in_done",
+  "name": "app-205841",
+  "server_id": "d3a0d95e-2bf0-423a-84d0-596281a2e748"
+ }
+]

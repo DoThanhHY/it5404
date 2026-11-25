@@ -1,0 +1,84 @@
+[22:18:14] 1. Cập nhật autoscaler (endpoint /decisions, API 0.0.0.0:9180)
+   /decisions HTTP 200
+[22:18:21] 2. Build image C2 (JDK 25 + AOT cache) và upload
+[  48.3] Running: cd /opt/app/ex && /opt/java/bin/java -XX:+UseSerialGC -Xmx512m -XX:AOTCacheOutput=/opt/app/app.aot -Dspring.context.exit=onRefresh -jar /opt/app/ex/app.jar
+[ 133.3] Running: ls -l /opt/app/app.aot
+Golden image (c2): /var/lib/it5404-image/app-golden-c2.qcow2
+[22:21:39] 3. RQ1/RQ2: đo scale-out 10 lần mỗi cấu hình
+C1 #1: ready 42.6s (active 3.9s, cloud-init 37.3s, jvm 34.9s, spring 4.461s)
+C1 #2: ready 42.2s (active 3.4s, cloud-init 37.0s, jvm 34.7s, spring 4.423s)
+C1 #3: ready 42.4s (active 3.2s, cloud-init 37.5s, jvm 35.3s, spring 4.535s)
+C1 #4: ready 42.3s (active 3.1s, cloud-init 37.0s, jvm 34.6s, spring 4.784s)
+C1 #5: ready 43.5s (active 3.2s, cloud-init 37.2s, jvm 34.8s, spring 5.492s)
+C1 #6: ready 41.4s (active 3.7s, cloud-init 36.3s, jvm 34.1s, spring 4.169s)
+C1 #7: ready 41.8s (active 3.1s, cloud-init 35.9s, jvm 33.8s, spring 4.444s)
+C1 #8: ready 43.0s (active 3.3s, cloud-init 37.5s, jvm 35.1s, spring 4.267s)
+C1 #9: ready 42.1s (active 3.7s, cloud-init 36.8s, jvm 34.7s, spring 4.765s)
+C1 #10: ready 40.4s (active 3.7s, cloud-init 36.0s, jvm 34.0s, spring 4.062s)
+    image = conn.image.find_image(cfg["image"], ignore_missing=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/stack/autoscaler/venv/lib/python3.12/site-packages/openstack/image/v2/_proxy.py", line 1028, in find_image
+    return self._find(
+           ^^^^^^^^^^^
+  File "/opt/stack/autoscaler/venv/lib/python3.12/site-packages/openstack/proxy.py", line 687, in _find
+    return resource_type.find(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/stack/autoscaler/venv/lib/python3.12/site-packages/openstack/image/v2/image.py", line 538, in find
+    raise exceptions.NotFoundException(
+openstack.exceptions.NotFoundException: No Image found for app-golden-c2
+C0 #1: ready 82.9s (active 11.0s, cloud-init 78.7s, jvm 77.7s, spring 3.26s)
+C0 #2: ready 70.5s (active 3.2s, cloud-init 65.8s, jvm 64.6s, spring 3.895s)
+C0 #3: ready 72.3s (active 3.7s, cloud-init 68.0s, jvm 66.9s, spring 3.879s)
+C0 #4: ready 69.1s (active 3.6s, cloud-init 65.0s, jvm 63.8s, spring 3.485s)
+C0 #5: ready 71.5s (active 3.6s, cloud-init 67.4s, jvm 66.4s, spring 3.476s)
+C0 #6: ready 70.7s (active 3.7s, cloud-init 66.9s, jvm 65.8s, spring 3.245s)
+C0 #7: ready 70.1s (active 3.1s, cloud-init 65.7s, jvm 64.7s, spring 3.818s)
+C0 #8: ready 69.2s (active 3.5s, cloud-init 65.2s, jvm 64.0s, spring 3.246s)
+C0 #9: ready 69.2s (active 3.2s, cloud-init 64.9s, jvm 64.0s, spring 3.526s)
+C0 #10: ready 68.4s (active 3.0s, cloud-init 64.2s, jvm 63.2s, spring 3.411s)
+[22:44:54] 4. RQ2-SLO: profile tải với C0 và C2 (C1 dùng RQ3-P1)
+== C0: image=ubuntu-24.04-base
+results/rq2-slo/C0 121 điểm, 11 sự kiện
+== C2: image=app-golden-c2
+results/rq2-slo/C2 121 điểm, 12 sự kiện
+[23:47:41] 5. RQ3: 4 bộ tham số
+== P1: out=80 in=20 out_cycles=2 in_cycles=8 cooldown=60/120
+results/rq3/P1 121 điểm, 12 sự kiện
+== P2: out=70 in=30 out_cycles=1 in_cycles=2 cooldown=15/15
+results/rq3/P2 121 điểm, 16 sự kiện
+== P3: out=85 in=15 out_cycles=4 in_cycles=16 cooldown=120/300
+results/rq3/P3 121 điểm, 19 sự kiện
+== P4: out=70 in=30 out_cycles=1 in_cycles=8 cooldown=30/120
+results/rq3/P4 121 điểm, 18 sự kiện
+[01:53:13] 6. Đánh giá trợ lý AI (20 câu)
+  File "/Users/thanhdo/dientoandammay/assistant/.venv/lib/python3.12/site-packages/requests/adapters.py", line 729, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='192.168.64.2', port=9180): Max retries exceeded with url: /decisions?limit=500 (Caused by NewConnectionError("HTTPConnection(host='192.168.64.2', port=9180): Failed to establish a new connection: [Errno 65] No route to host"))
+[01:53:15] 7. Phân tích + vẽ biểu đồ
+  -> /Users/thanhdo/dientoandammay/docs/figures/rq2-slo.png
+  -> /Users/thanhdo/dientoandammay/docs/figures/rq3-vms.png
+{"standard_runs": "...", "rq1_rq2_bench": [{"config": "C0", "API + lập lịch + tạo VM (đến ACTIVE)": 3.57, "Boot hệ điều hành + cloud-init": 62.58, "Chờ đến khi JVM khởi chạy": 0.0, "Khởi động JVM + Spring đến khi sẵn sàng": 4.18, "ready_median": 70.31, "ready_p90": 73.4, "ready_min": 68.4, "ready_max": 82.92, "spring_median": 3.48, "n": 10}, {"config": "C1", "API + lập lịch + tạo VM (đến ACTIVE)": 3.34, "Boot hệ điều hành + cloud-init": 33.49, "Chờ đến khi JVM khởi chạy": 0.0, "Khởi động JVM + Spring đến khi sẵn sàng": 5.35, "ready_median": 42.26, "ready_p90": 43.02, "ready_min": 40.43, "ready_max": 43.54, "spring_median": 4.45, "n": 10}], "rq2_slo": {"C0": {"tang_tai_300_900s": {"requests": 35736, "error_pct": 0.0, "p50_ms": 96.0, "p95_ms": 185.0, "p99_ms": 215.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 48918, "error_pct": 0.0, "p50_ms": 55.0, "p95_ms": 179.0, "p99_ms": 209.0, "slo_violation_pct": 0.0}}, "C1": {"tang_tai_300_900s": {"requests": 50941, "error_pct": 0.0, "p50_ms": 21.0, "p95_ms": 121.0, "p99_ms": 180.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 64385, "error_pct": 0.0, "p50_ms": 24.0, "p95_ms": 108.0, "p99_ms": 174.0, "slo_violation_pct": 0.0}}, "C2": {"tang_tai_300_900s": {"requests": 50283, "error_pct": 0.0, "p50_ms": 23.0, "p95_ms": 123.0, "p99_ms": 186.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 63739, "error_pct": 0.0, "p50_ms": 26.0, "p95_ms": 108.0, "p99_ms": 179.0, "slo_violation_pct": 0.0}}}, "rq3": [{"set": "P1", "params": "80/20%, N=2, M=8, cd=60/120s", "scale_events": 4, "flaps_5min": 0, "vm_hours": 0.829, "p95_ms": 108.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P2", "params": "70/30%, N=1, M=2, cd=15/15s", "scale_events": 6, "flaps_5min": 1, "vm_hours": 0.829, "p95_ms": 85.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P3", "params": "85/15%, N=4, M=16, cd=120/300s", "scale_events": 4, "flaps_5min": 0, "vm_hours": 0.958, "p95_ms": 133.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P4", "params": "70/30%, N=1, M=8, cd=30/120s", "scale_events": 6, "flaps_5min": 0, "vm_hours": 0.95, "p95_ms": 81.0, "slo_violation_pct": 0.0, "error_pct": 0.0}]}
+[01:53:34] XONG
+[01:53:58] Đo bù RQ1/RQ2 cho C2
+C2 #1: ready 37.2s (active 3.1s, cloud-init 35.5s, jvm 32.3s, spring 1.171s)
+C2 #2: ready 37.1s (active 3.2s, cloud-init 35.0s, jvm 31.9s, spring 1.485s)
+C2 #3: ready 36.5s (active 3.2s, cloud-init 35.2s, jvm 31.6s, spring 1.751s)
+C2 #4: ready 37.5s (active 3.7s, cloud-init 34.8s, jvm 31.5s, spring 1.408s)
+C2 #5: ready 37.0s (active 3.2s, cloud-init 34.5s, jvm 31.3s, spring 1.405s)
+C2 #6: ready 37.7s (active 3.2s, cloud-init 35.8s, jvm 32.2s, spring 1.742s)
+C2 #7: ready 37.6s (active 3.1s, cloud-init 35.8s, jvm 32.6s, spring 1.303s)
+C2 #8: ready 36.3s (active 3.1s, cloud-init 34.2s, jvm 31.0s, spring 1.557s)
+C2 #9: ready 37.0s (active 3.7s, cloud-init 34.5s, jvm 31.1s, spring 1.44s)
+C2 #10: ready 36.9s (active 3.1s, cloud-init 34.9s, jvm 31.7s, spring 1.504s)
+  -> /Users/thanhdo/dientoandammay/docs/figures/standard-runs.png
+  -> /Users/thanhdo/dientoandammay/docs/figures/rq1-breakdown.png
+  -> /Users/thanhdo/dientoandammay/docs/figures/rq2-slo.png
+  -> /Users/thanhdo/dientoandammay/docs/figures/rq3-vms.png
+{"standard_runs": "...", "rq1_rq2_bench": [{"config": "C0", "API + lập lịch + tạo VM (đến ACTIVE)": 3.57, "Boot hệ điều hành + cloud-init": 62.58, "Chờ đến khi JVM khởi chạy": 0.0, "Khởi động JVM + Spring đến khi sẵn sàng": 4.18, "ready_median": 70.31, "ready_p90": 73.4, "ready_min": 68.4, "ready_max": 82.92, "spring_median": 3.48, "n": 10}, {"config": "C1", "API + lập lịch + tạo VM (đến ACTIVE)": 3.34, "Boot hệ điều hành + cloud-init": 33.49, "Chờ đến khi JVM khởi chạy": 0.0, "Khởi động JVM + Spring đến khi sẵn sàng": 5.35, "ready_median": 42.26, "ready_p90": 43.02, "ready_min": 40.43, "ready_max": 43.54, "spring_median": 4.45, "n": 10}, {"config": "C2", "API + lập lịch + tạo VM (đến ACTIVE)": 3.16, "Boot hệ điều hành + cloud-init": 31.85, "Chờ đến khi JVM khởi chạy": 0.0, "Khởi động JVM + Spring đến khi sẵn sàng": 2.04, "ready_median": 37.04, "ready_p90": 37.56, "ready_min": 36.26, "ready_max": 37.68, "spring_median": 1.46, "n": 10}], "rq2_slo": {"C0": {"tang_tai_300_900s": {"requests": 35736, "error_pct": 0.0, "p50_ms": 96.0, "p95_ms": 185.0, "p99_ms": 215.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 48918, "error_pct": 0.0, "p50_ms": 55.0, "p95_ms": 179.0, "p99_ms": 209.0, "slo_violation_pct": 0.0}}, "C1": {"tang_tai_300_900s": {"requests": 50941, "error_pct": 0.0, "p50_ms": 21.0, "p95_ms": 121.0, "p99_ms": 180.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 64385, "error_pct": 0.0, "p50_ms": 24.0, "p95_ms": 108.0, "p99_ms": 174.0, "slo_violation_pct": 0.0}}, "C2": {"tang_tai_300_900s": {"requests": 50283, "error_pct": 0.0, "p50_ms": 23.0, "p95_ms": 123.0, "p99_ms": 186.0, "slo_violation_pct": 0.0}, "toan_bo": {"requests": 63739, "error_pct": 0.0, "p50_ms": 26.0, "p95_ms": 108.0, "p99_ms": 179.0, "slo_violation_pct": 0.0}}}, "rq3": [{"set": "P1", "params": "80/20%, N=2, M=8, cd=60/120s", "scale_events": 4, "flaps_5min": 0, "vm_hours": 0.829, "p95_ms": 108.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P2", "params": "70/30%, N=1, M=2, cd=15/15s", "scale_events": 6, "flaps_5min": 1, "vm_hours": 0.829, "p95_ms": 85.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P3", "params": "85/15%, N=4, M=16, cd=120/300s", "scale_events": 4, "flaps_5min": 0, "vm_hours": 0.958, "p95_ms": 133.0, "slo_violation_pct": 0.0, "error_pct": 0.0}, {"set": "P4", "params": "70/30%, N=1, M=8, cd=30/120s", "scale_events": 6, "flaps_5min": 0, "vm_hours": 0.95, "p95_ms": 81.0, "slo_violation_pct": 0.0, "error_pct": 0.0}]}
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/standard.tex
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/standard-scaleout.tex
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/rq12.tex
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/rq2slo.tex
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/rq3.tex
+  -> /Users/thanhdo/dientoandammay/docs/report/generated/assistant.tex
+[02:02:20] HOÀN TẤT

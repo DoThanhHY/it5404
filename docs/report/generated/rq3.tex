@@ -1,1 +1,10 @@
-\textit{(Số liệu đang được thu thập – bảng sẽ tự cập nhật khi thực nghiệm hoàn tất.)}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Bộ & Tham số (out/in, N, M, cooldown) & Sự kiện scale & Đảo chiều & VM-giờ & p95 (ms) & Vượt SLO (\%) \\
+\midrule
+P1 & 80/20\%, N=2, M=8, cd=60/120s & 4 & 0 & 0,83 & 108 & 0,00 \\
+P2 & 70/30\%, N=1, M=2, cd=15/15s & 6 & 1 & 0,83 & 85 & 0,00 \\
+P3 & 85/15\%, N=4, M=16, cd=120/300s & 4 & 0 & 0,96 & 133 & 0,00 \\
+P4 & 70/30\%, N=1, M=8, cd=30/120s & 6 & 0 & 0,95 & 81 & 0,00 \\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,155 @@
+[
+ {
+  "ts": "2026-11-25T18:30:39.479+00:00",
+  "event": "scale_out_start",
+  "name": "app-013039",
+  "cpu": 76.2,
+  "n": 1
+ },
+ {
+  "ts": "2026-11-25T18:31:21.037+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "firing",
+  "summary": "CPU trung bình nhóm app 93% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T18:31:21.495+00:00",
+  "event": "scale_out_done",
+  "name": "app-013039",
+  "server_id": "df7b4632-dc82-492d-89c3-b22b14f740b4",
+  "ip": "10.10.0.111",
+  "haproxy_slot": "app2",
+  "phases_s": {
+   "api": 0.43,
+   "boot_to_active": 4.24,
+   "active_to_app_ready": 37.34,
+   "lb_register": 0.0,
+   "total": 42.02
+  }
+ },
+ {
+  "ts": "2026-11-25T18:31:54.924+00:00",
+  "event": "scale_out_start",
+  "name": "app-013154",
+  "cpu": 92.8,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T18:32:21.053+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "firing",
+  "summary": "CPU trung bình nhóm app 87% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T18:32:21.058+00:00",
+  "event": "alert",
+  "name": "AppCpuLow",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 8% ≤ 20% – sắp scale-in"
+ },
+ {
+  "ts": "2026-11-25T18:32:39.026+00:00",
+  "event": "scale_out_done",
+  "name": "app-013154",
+  "server_id": "4f187b46-4124-4319-b1da-92b1e66dc749",
+  "ip": "10.10.0.172",
+  "haproxy_slot": "app3",
+  "phases_s": {
+   "api": 0.46,
+   "boot_to_active": 4.3,
+   "active_to_app_ready": 39.34,
+   "lb_register": 0.0,
+   "total": 44.1
+  }
+ },
+ {
+  "ts": "2026-11-25T18:33:10.401+00:00",
+  "event": "scale_out_start",
+  "name": "app-013310",
+  "cpu": 81.6,
+  "n": 3
+ },
+ {
+  "ts": "2026-11-25T18:33:21.067+00:00",
+  "event": "alert",
+  "name": "AppCpuHigh",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 82% ≥ 80% – sắp scale-out"
+ },
+ {
+  "ts": "2026-11-25T18:33:21.067+00:00",
+  "event": "alert",
+  "name": "AppCpuLow",
+  "status": "resolved",
+  "summary": "CPU trung bình nhóm app 8% ≤ 20% – sắp scale-in"
+ },
+ {
+  "ts": "2026-11-25T18:33:55.459+00:00",
+  "event": "scale_out_done",
+  "name": "app-013310",
+  "server_id": "d56cff85-6449-4640-a81a-6d76c0d00e7a",
+  "ip": "10.10.0.222",
+  "haproxy_slot": "app4",
+  "phases_s": {
+   "api": 0.34,
+   "boot_to_active": 4.28,
+   "active_to_app_ready": 40.44,
+   "lb_register": 0.0,
+   "total": 45.06
+  }
+ },
+ {
+  "ts": "2026-11-25T18:34:10.502+00:00",
+  "event": "scale_out_blocked",
+  "why": "max_instances",
+  "cpu": 74.6,
+  "n": 4
+ },
+ {
+  "ts": "2026-11-25T18:38:58.364+00:00",
+  "event": "scale_in_start",
+  "name": "app-013310",
+  "server_id": "d56cff85-6449-4640-a81a-6d76c0d00e7a",
+  "ip": "10.10.0.222",
+  "cpu": 14.0,
+  "n": 4
+ },
+ {
+  "ts": "2026-11-25T18:39:00.499+00:00",
+  "event": "scale_in_done",
+  "name": "app-013310",
+  "server_id": "d56cff85-6449-4640-a81a-6d76c0d00e7a"
+ },
+ {
+  "ts": "2026-11-25T18:41:14.646+00:00",
+  "event": "scale_in_start",
+  "name": "app-013154",
+  "server_id": "4f187b46-4124-4319-b1da-92b1e66dc749",
+  "ip": "10.10.0.172",
+  "cpu": 13.1,
+  "n": 3
+ },
+ {
+  "ts": "2026-11-25T18:41:16.779+00:00",
+  "event": "scale_in_done",
+  "name": "app-013154",
+  "server_id": "4f187b46-4124-4319-b1da-92b1e66dc749"
+ },
+ {
+  "ts": "2026-11-25T18:44:00.917+00:00",
+  "event": "scale_in_start",
+  "name": "app-013039",
+  "server_id": "df7b4632-dc82-492d-89c3-b22b14f740b4",
+  "ip": "10.10.0.111",
+  "cpu": 19.0,
+  "n": 2
+ },
+ {
+  "ts": "2026-11-25T18:44:03.083+00:00",
+  "event": "scale_in_done",
+  "name": "app-013039",
+  "server_id": "df7b4632-dc82-492d-89c3-b22b14f740b4"
+ }
+]

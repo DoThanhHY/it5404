@@ -109,7 +109,7 @@ if bench:
                        "ready_min": df.ready_s.min(), "ready_max": df.ready_s.max(),
                        "spring_median": df.spring_start_s.median(), "n": len(df)})
     P = pd.DataFrame(phases).set_index("config")
-    cols = [c for c in P.columns if not c.startswith(("ready", "spring", "n"))]
+    cols = [c for c in P.columns if not c.startswith(("ready", "spring", "n")) and P[c].max() >= 0.05]
     fig, ax = plt.subplots(figsize=(7.2, 2.2 + 0.45 * len(P)))
     left = pd.Series(0.0, index=P.index)
     for i, c in enumerate(cols):
@@ -133,13 +133,21 @@ for c in ("C0", "C1", "C2"):
     if p.exists():
         slo[c] = {"tang_tai_300_900s": jtl_stats(p, 300, 900), "toan_bo": jtl_stats(p)}
 if slo:
-    fig, ax = plt.subplots(figsize=(5.2, 2.6))
+    fig, ax = plt.subplots(figsize=(6.4, 3.0))
     xs = list(slo)
-    vals = [slo[c]["tang_tai_300_900s"]["slo_violation_pct"] for c in xs]
-    ax.bar(xs, vals, color=S[0], width=0.5)
-    for x, v in zip(xs, vals):
-        ax.text(x, v, f"{v:.1f}%", ha="center", va="bottom", color=INK, fontsize=9)
-    ax.set(ylabel="% request > 1 s", title="RQ2 – Request vượt SLO trong giai đoạn tải tăng (300–900 s)")
+    w = 0.25
+    for j, q in enumerate(("p50_ms", "p95_ms", "p99_ms")):
+        vals = [slo[c]["tang_tai_300_900s"][q] for c in xs]
+        pos = [i + (j - 1) * w for i in range(len(xs))]
+        ax.bar(pos, vals, width=w - 0.03, color=S[j], label=q[:3], edgecolor="#fcfcfb", linewidth=1)
+        for x, v in zip(pos, vals):
+            ax.text(x, v + 3, f"{v:.0f}", ha="center", va="bottom", color=INK, fontsize=8)
+    ax.set_xticks(range(len(xs)), xs)
+    viol = ", ".join(f"{c}: {slo[c]['tang_tai_300_900s']['slo_violation_pct']:.1f}%" for c in xs)
+    ax.set(ylabel="Độ trễ (ms)", title=f"RQ2 – Độ trễ khi tải tăng (300–900 s)\nRequest vượt SLO 1 s: {viol}")
+    ax.title.set_fontsize(9)
+    ax.legend(fontsize=8, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=3)
+    ax.set_ylim(0, max(slo[c]["tang_tai_300_900s"]["p99_ms"] for c in xs) * 1.15)
     ax.grid(axis="x", visible=False)
     save(fig, "rq2-slo.png")
     summary["rq2_slo"] = slo
@@ -156,7 +164,8 @@ for d in sorted(glob.glob(str(ROOT / "experiments/results/rq3/P*"))):
                 "p95_ms": st["p95_ms"], "slo_violation_pct": st["slo_violation_pct"], "error_pct": st["error_pct"],
                 "ts": ts})
 if rq3:
-    fig, axes = plt.subplots(len(rq3), 1, figsize=(7.2, 1.25 * len(rq3) + 0.6), sharex=True, sharey=True)
+    fig, axes = plt.subplots(len(rq3), 1, figsize=(7.2, 1.6 * len(rq3) + 0.8), sharex=True, sharey=True)
+    fig.subplots_adjust(hspace=0.7)
     for i, (r, ax) in enumerate(zip(rq3, axes)):
         ax.step(r["ts"].t_s / 60, r["ts"].vms, where="post", color=S[0])
         ax.set_title(f"{r['set']}: {r['params']}", loc="left", fontsize=8.5)

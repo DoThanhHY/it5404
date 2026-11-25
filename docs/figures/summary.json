@@ -1,0 +1,201 @@
+{
+ "standard_runs": [
+  {
+   "run": 1,
+   "requests": 62560,
+   "error_pct": 0.0,
+   "p50_ms": 26.0,
+   "p95_ms": 130.0,
+   "p99_ms": 203.0,
+   "slo_violation_pct": 0.0,
+   "scale_out": 2,
+   "scale_in": 2,
+   "max_vms": 3,
+   "vm_hours": 0.812,
+   "scale_out_total_s": [
+    44.1,
+    49.17
+   ]
+  },
+  {
+   "run": 2,
+   "requests": 61662,
+   "error_pct": 0.0,
+   "p50_ms": 28.0,
+   "p95_ms": 142.0,
+   "p99_ms": 222.0,
+   "slo_violation_pct": 0.0,
+   "scale_out": 2,
+   "scale_in": 2,
+   "max_vms": 3,
+   "vm_hours": 0.804,
+   "scale_out_total_s": [
+    46.89,
+    43.92
+   ]
+  },
+  {
+   "run": 3,
+   "requests": 63791,
+   "error_pct": 0.0,
+   "p50_ms": 25.0,
+   "p95_ms": 124.0,
+   "p99_ms": 183.0,
+   "slo_violation_pct": 0.0,
+   "scale_out": 2,
+   "scale_in": 2,
+   "max_vms": 3,
+   "vm_hours": 0.804,
+   "scale_out_total_s": [
+    43.14,
+    44.85
+   ]
+  }
+ ],
+ "rq1_rq2_bench": [
+  {
+   "config": "C0",
+   "API + lập lịch + tạo VM (đến ACTIVE)": 3.57,
+   "Boot hệ điều hành + cloud-init": 62.58,
+   "Chờ đến khi JVM khởi chạy": 0.0,
+   "Khởi động JVM + Spring đến khi sẵn sàng": 4.18,
+   "ready_median": 70.31,
+   "ready_p90": 73.4,
+   "ready_min": 68.4,
+   "ready_max": 82.92,
+   "spring_median": 3.48,
+   "n": 10
+  },
+  {
+   "config": "C1",
+   "API + lập lịch + tạo VM (đến ACTIVE)": 3.34,
+   "Boot hệ điều hành + cloud-init": 33.49,
+   "Chờ đến khi JVM khởi chạy": 0.0,
+   "Khởi động JVM + Spring đến khi sẵn sàng": 5.35,
+   "ready_median": 42.26,
+   "ready_p90": 43.02,
+   "ready_min": 40.43,
+   "ready_max": 43.54,
+   "spring_median": 4.45,
+   "n": 10
+  },
+  {
+   "config": "C2",
+   "API + lập lịch + tạo VM (đến ACTIVE)": 3.16,
+   "Boot hệ điều hành + cloud-init": 31.85,
+   "Chờ đến khi JVM khởi chạy": 0.0,
+   "Khởi động JVM + Spring đến khi sẵn sàng": 2.04,
+   "ready_median": 37.04,
+   "ready_p90": 37.56,
+   "ready_min": 36.26,
+   "ready_max": 37.68,
+   "spring_median": 1.46,
+   "n": 10
+  }
+ ],
+ "rq2_slo": {
+  "C0": {
+   "tang_tai_300_900s": {
+    "requests": 35736,
+    "error_pct": 0.0,
+    "p50_ms": 96.0,
+    "p95_ms": 185.0,
+    "p99_ms": 215.0,
+    "slo_violation_pct": 0.0
+   },
+   "toan_bo": {
+    "requests": 48918,
+    "error_pct": 0.0,
+    "p50_ms": 55.0,
+    "p95_ms": 179.0,
+    "p99_ms": 209.0,
+    "slo_violation_pct": 0.0
+   }
+  },
+  "C1": {
+   "tang_tai_300_900s": {
+    "requests": 50941,
+    "error_pct": 0.0,
+    "p50_ms": 21.0,
+    "p95_ms": 121.0,
+    "p99_ms": 180.0,
+    "slo_violation_pct": 0.0
+   },
+   "toan_bo": {
+    "requests": 64385,
+    "error_pct": 0.0,
+    "p50_ms": 24.0,
+    "p95_ms": 108.0,
+    "p99_ms": 174.0,
+    "slo_violation_pct": 0.0
+   }
+  },
+  "C2": {
+   "tang_tai_300_900s": {
+    "requests": 50283,
+    "error_pct": 0.0,
+    "p50_ms": 23.0,
+    "p95_ms": 123.0,
+    "p99_ms": 186.0,
+    "slo_violation_pct": 0.0
+   },
+   "toan_bo": {
+    "requests": 63739,
+    "error_pct": 0.0,
+    "p50_ms": 26.0,
+    "p95_ms": 108.0,
+    "p99_ms": 179.0,
+    "slo_violation_pct": 0.0
+   }
+  }
+ },
+ "rq3": [
+  {
+   "set": "P1",
+   "params": "80/20%, N=2, M=8, cd=60/120s",
+   "scale_events": 4,
+   "flaps_5min": 0,
+   "vm_hours": 0.829,
+   "p95_ms": 108.0,
+   "slo_violation_pct": 0.0,
+   "error_pct": 0.0
+  },
+  {
+   "set": "P2",
+   "params": "70/30%, N=1, M=2, cd=15/15s",
+   "scale_events": 6,
+   "flaps_5min": 1,
+   "vm_hours": 0.829,
+   "p95_ms": 85.0,
+   "slo_violation_pct": 0.0,
+   "error_pct": 0.0
+  },
+  {
+   "set": "P3",
+   "params": "85/15%, N=4, M=16, cd=120/300s",
+   "scale_events": 4,
+   "flaps_5min": 0,
+   "vm_hours": 0.958,
+   "p95_ms": 133.0,
+   "slo_violation_pct": 0.0,
+   "error_pct": 0.0
+  },
+  {
+   "set": "P4",
+   "params": "70/30%, N=1, M=8, cd=30/120s",
+   "scale_events": 6,
+   "flaps_5min": 0,
+   "vm_hours": 0.95,
+   "p95_ms": 81.0,
+   "slo_violation_pct": 0.0,
+   "error_pct": 0.0
+  }
+ ],
+ "assistant_eval": {
+  "model": "qwen3:8b",
+  "accuracy": 0.75,
+  "latency_median_s": 8.25,
+  "latency_p90_s": 15.9,
+  "n": 20
+ }
+}

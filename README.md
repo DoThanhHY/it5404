@@ -156,6 +156,7 @@ cd assistant && python3.12 -m venv .venv && .venv/bin/pip install -r requirement
 | Autoscaler tạo VM bị ERROR "No valid host" ngay sau reboot | nova-compute chưa báo tài nguyên lên Placement | Autoscaler tự xóa VM ERROR và thử lại sau cooldown |
 | Nova trả 400 khi autoscaler tạo VM | Gửi `user_data=None` | Chỉ gửi `user_data` khi có giá trị |
 | Không được cài Docker trong VM host | Docker đặt `iptables FORWARD DROP`, làm hỏng Neutron | Prometheus/Grafana cài bằng binary/apt |
+| Script Python trên Mac báo `[Errno 65] No route to host` tới 192.168.64.2, trong khi `curl` vẫn chạy | Quyền *Local Network* của macOS chặn Python Homebrew | Tạo venv bằng Python hệ thống: `/usr/bin/python3 -m venv assistant/.venv39 && assistant/.venv39/bin/pip install requests`, hoặc cấp quyền trong System Settings → Privacy & Security → Local Network |
 
 Sao lưu VM host (rất nhanh nhờ APFS clone):
 `limactl stop openstack && cp -c ~/.lima/openstack/disk ~/lima-backups/openstack-$(date +%F)`.

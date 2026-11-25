@@ -265,8 +265,20 @@ Mỗi cấu hình được đo 10 lần. Mỗi lần, harness tạo một máy �
 \input{generated/rq2slo.tex}
 \end{table}
 
+\begin{figure}[!htbp]
+\centering
+\fig{rq2-slo.pdf}{0.85\textwidth}
+\caption{RQ2 – Độ trễ p50/p95/p99 trong giai đoạn tải tăng với ba cấu hình.}\label{fig:rq2}
+\end{figure}
+
 \ifhaverqone
-Hình~\ref{fig:rq1} và Bảng~\ref{tab:rq12} cho thấy phần lớn thời gian nằm trong máy ảo (boot, cloud-init, khởi động JVM), trong khi các bước của OpenStack (gọi API, lập lịch, tạo VM) chỉ chiếm vài giây. Golden image loại bỏ thời gian cài đặt lúc boot; AOT cache rút ngắn tiếp phần khởi động Spring.
+Hình~\ref{fig:rq1} và Bảng~\ref{tab:rq12} cho thấy phần lớn thời gian nằm trong máy ảo (boot, cloud-init, khởi động JVM). Các bước của OpenStack (gọi API, lập lịch, tạo VM đến ACTIVE) chỉ mất khoảng 3,2--3,6~s, tức 5--9\% tổng thời gian. Với C0, riêng giai đoạn boot và cloud-init (cài JRE bằng \code{apt}, tải \code{app.jar}) đã chiếm 62,6~s trong tổng 70,3~s.
+
+\textbf{Golden image} (C1) giảm thời gian sẵn sàng từ 70,3~s xuống 42,3~s, tức giảm 40\%. Phần cài đặt lúc boot biến mất, và dao động giữa các lần đo cũng nhỏ hơn (40,4--43,5~s, so với 68,4--82,9~s của C0). \textbf{AOT cache của JDK~25} (C2) giảm thời gian khởi động Spring từ 4,45~s xuống 1,46~s, tức nhanh hơn khoảng 3 lần, và đưa tổng thời gian xuống 37,0~s (giảm thêm 12\% so với C1, 47\% so với C0). Phần còn lại của C2 gần như hoàn toàn là boot hệ điều hành trong môi trường nested virtualization, nên bước tối ưu tiếp theo nên nhắm vào kernel và initramfs, hoặc giữ sẵn máy ảo ấm.
+\fi
+
+\ifhaveslo
+Về phía người dùng (Hình~\ref{fig:rq2}, Bảng~\ref{tab:slo}), không cấu hình nào có request vượt SLO 1~s, vì profile tăng tải từng bậc và máy hiện có vẫn phục vụ được (chậm hơn) trong lúc chờ máy mới. Khác biệt thể hiện ở độ trễ. Trong giai đoạn tải tăng, C0 có p50 96~ms và p95 185~ms, còn C1 và C2 chỉ khoảng 21--23~ms và 121--123~ms, vì máy mới của C0 tham gia muộn hơn gần 30~s. Giữa C1 và C2 không có khác biệt đáng kể: 5~s tiết kiệm được nhỏ so với độ trễ phát hiện 30--45~s và chu kỳ cooldown. Như vậy, golden image là tối ưu đáng giá nhất; AOT cache hữu ích khi ứng dụng khởi động chậm hơn hoặc khi tải tăng đột ngột hơn.
 \fi
 
 \subsection{RQ3: tham số autoscaler}
@@ -285,9 +297,13 @@ Bốn bộ tham số được chạy với cùng profile tải: P1 mặc định
 \caption{RQ3 – Số máy ảo theo thời gian với bốn bộ tham số.}\label{fig:rq3}
 \end{figure}
 
+\ifhaverqthree
+Bảng~\ref{tab:rq3} và Hình~\ref{fig:rq3} cho thấy rõ sự đánh đổi. P1 (mặc định) đạt 3 máy, không đảo chiều và tốn ít tài nguyên nhất (0,83 VM-giờ), với p95 108~ms. P2 phản ứng nhanh nhất và lên 4 máy, nên p95 giảm còn 85~ms. Tuy nhiên, vì $M=2$ và cooldown 15~s, P2 scale-in liên tiếp ngay khi tải giảm và xuất hiện một lần đảo chiều, tức là có dấu hiệu dao động. P3 phát hiện chậm ($N=4$) nên máy thứ hai và thứ ba tham gia muộn (p95 cao nhất, 133~ms), và cooldown scale-in 300~s giữ máy dư gần hết phiên, nên tốn nhiều tài nguyên nhất (0,96 VM-giờ). P4 kết hợp scale-out nhạy với scale-in thận trọng, cho p95 thấp nhất (81~ms) mà không đảo chiều, đổi lại tốn thêm khoảng 15\% VM-giờ so với P1. Kết luận: phản ứng \emph{nhanh khi tăng, chậm khi giảm} (P4) phù hợp khi ưu tiên độ trễ; P1 phù hợp khi ưu tiên chi phí.
+\fi
+
 \subsection{Trợ lý vận hành AI}
 
-Bộ đánh giá gồm 20 câu hỏi về trạng thái hiện tại (số máy, CPU từng máy, RPS), cấu hình (ngưỡng, min/max), lịch sử (thời điểm và lý do scale, giai đoạn chậm nhất, số lần scale, lỗi) và câu hỏi giả định (đổi ngưỡng). Đáp án đúng được tính tự động từ chính nguồn dữ liệu (Prometheus, Nova, log autoscaler) ngay trước khi hỏi; câu trả lời được coi là đúng nếu chứa giá trị đáp án trong sai số cho phép. \input{generated/assistant.tex}
+Bộ đánh giá gồm 20 câu hỏi về trạng thái hiện tại (số máy, CPU từng máy, RPS), cấu hình (ngưỡng, min/max), lịch sử (thời điểm và lý do scale, giai đoạn chậm nhất, số lần scale, lỗi) và câu hỏi giả định (đổi ngưỡng). Đáp án đúng được tính tự động từ chính nguồn dữ liệu (Prometheus, Nova, log autoscaler) ngay trước khi hỏi; câu trả lời được coi là đúng nếu chứa giá trị đáp án trong sai số cho phép. \input{generated/assistant.tex} Các câu về trạng thái hiện tại và cấu hình đều được trả lời đúng. Năm câu sai rơi vào ba nhóm: (i) đếm sự kiện trên log dài (đếm nhầm số lần scale-out/scale-in, và lấy sự kiện \emph{bị chặn do max} thay cho lần scale-out thành công gần nhất); (ii) câu giả định đổi ngưỡng: mô hình gọi đúng công cụ mô phỏng nhưng diễn giải sai kết quả; (iii) truy vấn quantile của histogram: mô hình tự viết PromQL thay vì dùng recording rule. Có thể cải thiện bằng cách thêm công cụ chuyên biệt (ví dụ \code{count\_events(type, since)}) để mô hình không phải tự đếm. Thao tác ghi bằng thông tin xác thực \code{reader} bị Keystone/Nova từ chối (HTTP~403), và đề xuất scale chỉ được thực hiện sau khi người vận hành phê duyệt.
 
 \subsection{Giới hạn}
 
