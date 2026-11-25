@@ -8,3 +8,5 @@ __pycache__/
 assistant/eval-results.json
 experiments/results/
 jmeter.log
+docs/report/*.aux
+docs/report/*.log

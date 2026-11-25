@@ -1,0 +1,376 @@
+% Báo cáo đồ án IT5404 – Điện toán đám mây (học kỳ 2026.1B)
+% Template: Springer LNCS (llncs.cls v2.21). Biên dịch: cd docs/report && tectonic main.tex
+\documentclass[runningheads]{llncs}
+\usepackage{fontspec}
+\setmainfont{texgyretermes}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\setmonofont{texgyrecursor}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold,
+  ItalicFont=*-italic, BoldItalicFont=*-bolditalic, Scale=0.95]
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,arrows.meta,backgrounds,calc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+\urlstyle{rm}
+
+% Việt hóa các nhãn của llncs
+\renewcommand{\abstractname}{Tóm tắt}
+\renewcommand{\keywordname}{{\bfseries Từ khóa:}}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\refname}{Tài liệu tham khảo}
+\renewcommand{\ackname}{Lời cảm ơn}
+\renewcommand{\discintname}{Khai báo sử dụng công cụ AI}
+\newcommand{\code}[1]{\texttt{#1}}
+\setlength{\emergencystretch}{3em}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+% Số liệu thực nghiệm sinh tự động (experiments/report_tables.py)
+\input{generated/havestandard.tex}
+\input{generated/haverqone.tex}
+\input{generated/haveslo.tex}
+\input{generated/haverqthree.tex}
+\newcommand{\fig}[2]{\IfFileExists{../figures/#1}{\includegraphics[width=#2]{../figures/#1}}%
+  {\fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5em}\textit{Biểu đồ \code{#1} sẽ xuất hiện khi thực nghiệm hoàn tất.}\vspace{1.5em}}}}}
+
+\begin{document}
+
+\title{Hệ thống IaaS tự co giãn trên laptop: giám sát không cần thao tác, autoscaling theo ngưỡng qua OpenStack API và trợ lý vận hành AI}
+\titlerunning{Hệ thống IaaS tự co giãn trên laptop}
+
+\author{Thành viên 1 \and Thành viên 2 \and Thành viên 3 \and Thành viên 4 \and Thành viên 5}
+\authorrunning{Nhóm đồ án IT5404}
+\institute{Trường Công nghệ Thông tin và Truyền thông, Đại học Bách khoa Hà Nội\\
+Học phần IT5404 – Điện toán đám mây, học kỳ 2026.1B\\
+\url{https://github.com/DoThanhHY/it5404}}
+
+\maketitle
+
+\begin{abstract}
+Báo cáo trình bày việc xây dựng một hệ thống IaaS hoàn chỉnh chạy trên một laptop: OpenStack 2026.2 (DevStack all-in-one) trong máy ảo Ubuntu 24.04 arm64 sử dụng nested virtualization trên Apple M4. Hệ thống đáp ứng ba yêu cầu bắt buộc của đề bài: (1) cung cấp máy ảo có mạng ra Internet, quản lý qua giao diện web Horizon và REST API; (2) giám sát tự động – agent \code{node\_exporter} có sẵn trong golden image và Prometheus tự phát hiện máy ảo mới qua Nova API mà không cần thao tác hay sửa cấu hình; (3) autoscaler tự viết đọc CPU trung bình từ Prometheus và gọi Nova API để thêm hoặc bớt máy ảo theo ngưỡng 80\%/20\%, kèm cập nhật load balancer HAProxy, cooldown và drain. Qua thực nghiệm, nhóm phát hiện và khắc phục ba nguyên nhân làm chậm scale-out đặc thù cho môi trường laptop: cloud-init bị vô hiệu hóa trên Nova aarch64, các dịch vụ chạy lần đầu của Ubuntu cloud image, và bộ nhớ máy ảo không được cấp huge page trong nested virtualization; nhờ đó thời gian từ lúc quyết định scale-out đến khi máy mới phục vụ request giảm từ 194–312~s xuống khoảng 50–60~s. Phần mở rộng phân rã thời gian scale-out theo ba cấu hình triển khai (cloud-init, golden image, golden image + AOT cache của JDK~25), đánh giá ảnh hưởng của tham số autoscaler, và xây dựng trợ lý vận hành dùng LLM cục bộ với các công cụ chỉ đọc.
+\keywords{OpenStack \and Autoscaling \and Prometheus \and Nested virtualization \and Cold start}
+\end{abstract}
+
+%=====================================================================
+\section{Mô tả bài toán}
+
+Đề bài yêu cầu xây dựng một hệ thống IaaS dựa trên phần mềm mã nguồn mở với ba công việc bắt buộc, chiếm toàn bộ số điểm:
+\begin{itemize}
+\item \textbf{Công việc 1 (30\%)} – IaaS: (a) cung cấp máy ảo, (b) mạng ảo để máy ảo truy cập được Internet, (c) có giao diện đồ họa và API.
+\item \textbf{Công việc 2 (40\%)} – Giám sát tự động: (a) agent giám sát tự được cài khi máy ảo được tạo, (b) dữ liệu giám sát tự gửi về máy chủ giám sát.
+\item \textbf{Công việc 3 (30\%)} – (a) theo dõi tải tăng giảm, (b) tự động thêm/bớt máy ảo theo ngưỡng, thông qua API của IaaS.
+\end{itemize}
+
+Ràng buộc thực tế của nhóm là chỉ có laptop cá nhân. Hệ thống do đó phải nhẹ (bỏ các dịch vụ không cần thiết như Cinder, Swift, Telemetry, Octavia) nhưng vẫn là OpenStack thật, gọi API thật. Bảng~\ref{tab:map} ánh xạ từng yêu cầu sang giải pháp và cách chứng minh.
+
+\begin{table}[!htbp]
+\caption{Ánh xạ yêu cầu đề bài với giải pháp}\label{tab:map}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}p{2.6cm}LL@{}}
+\toprule
+Yêu cầu & Giải pháp & Cách chứng minh \\
+\midrule
+1a. Máy ảo & Nova + libvirt/KVM (nested) & Tạo VM trên Horizon và bằng CLI/API \\
+1b. Mạng, Internet & Neutron/OVN: mạng tenant \code{app-net}, router SNAT ra mạng external & Trong VM: \code{ping 8.8.8.8}, \code{curl https://...} \\
+1c. GUI và API & Horizon; Keystone/Nova/Glance/Neutron REST, CLI, openstacksdk & Script \code{docs/demo-1c-api.sh} dùng \code{curl} \\
+2a. Agent tự cài & Golden image có sẵn \code{node\_exporter} (systemd) & Tạo VM mới, không SSH, vẫn có metric \\
+2b. Tự gửi dữ liệu & Prometheus \code{openstack\_sd\_configs} hỏi Nova định kỳ & VM mới tự xuất hiện trong Targets/Grafana \\
+3a. Theo dõi tải & JMeter → HAProxy → VM; Grafana (CPU, RPS, p95) & Biểu đồ CPU theo profile tải \\
+3b. Scale theo ngưỡng & Autoscaler tự viết, gọi Nova API & Số VM tự tăng/giảm, log quyết định \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=====================================================================
+\section{Giải pháp}
+
+\subsection{Kiến trúc tổng thể}
+
+Hình~\ref{fig:arch} mô tả kiến trúc. Máy thật là MacBook Apple M4 (10 nhân, 24~GB RAM). Trên đó, Lima~\cite{lima} tạo một máy ảo Ubuntu 24.04 arm64 (8 vCPU, 16~GB RAM) bằng Apple Virtualization.framework với \emph{nested virtualization} – tính năng có trên chip M3 trở lên với macOS~15 trở lên – nên bên trong có \code{/dev/kvm} và Nova chạy được KVM thay vì giả lập QEMU. Máy ảo này (gọi là \emph{host}) chạy DevStack cùng toàn bộ hệ thống giám sát, load balancer và autoscaler; các máy ảo ứng dụng do OpenStack tạo là máy ảo lồng (L2).
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[font=\footnotesize,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, fill=white, minimum height=9mm, minimum width=24mm},
+  arr/.style={-{Stealth[length=5pt]}, semithick},
+  lab/.style={font=\scriptsize, fill=white, inner sep=1pt}]
+% --- Mac (L0) ---
+\node[box] (jm) at (0,3.3) {JMeter\\(sinh tải)};
+\node[box] (ai) at (0,0.2) {Trợ lý AI\\Ollama qwen3:8b};
+% --- VM host (L1) ---
+\node[box] (lb) at (4,3.3) {HAProxy\\:8888};
+\node[box] (prom) at (4,1.75) {Prometheus\\(openstack\_sd → Nova)};
+\node[box] (graf) at (4,0.2) {Grafana,\\Alertmanager};
+\node[box] (as) at (7.2,0.2) {Autoscaler\\vòng lặp 15 s};
+\node[box, minimum width=31mm] (os) at (12,0.2) {OpenStack: Keystone, Nova,\\Neutron/OVN, Glance, Horizon};
+\node[box, minimum width=31mm] (vm1) at (12,3.5) {VM app \#1: Spring Boot :8080\\node\_exporter :9100};
+\node[box, minimum width=31mm] (vmn) at (12,2.2) {VM app \#n};
+\begin{scope}[on background layer]
+\node[draw, rounded corners=3pt, fill=green!5, inner sep=4pt, fit=(vm1)(vmn),
+      label={[font=\scriptsize\itshape, yshift=1pt]below:máy ảo lồng (L2) trên app-net}] (vms) {};
+\node[draw, rounded corners=4pt, fill=blue!4, inner sep=7pt, fit=(lb)(prom)(graf)(as)(os)(vms),
+      label={[font=\footnotesize\bfseries]above:VM host – Ubuntu 24.04 arm64 (Lima, nested KVM)}] (host) {};
+\node[draw, rounded corners=4pt, fill=gray!8, inner sep=7pt, fit=(jm)(ai),
+      label={[font=\footnotesize\bfseries]above:Mac Apple M4}] {};
+\end{scope}
+\draw[arr] (jm) -- node[lab, above]{HTTP} (lb);
+\draw[arr] (lb.east) -- (vm1.west);
+\draw[arr] (lb.east) -- (vmn.west);
+\draw[arr, dashed] (prom.east) -- node[lab, above, sloped, pos=.72]{scrape :9100, :8080} (vmn.south west);
+\draw[arr, dashed] (prom) -- (graf);
+\draw[arr] (as.north west) -- node[lab, below, sloped, pos=.45]{PromQL} (prom.south east);
+\draw[arr] (as) -- node[lab, above]{tạo/xóa VM} (os);
+\draw[arr] (os.north) -- node[lab, right, pos=.5]{boot} (vms.south);
+\draw[arr] (as.north) -- ++(0,1.45) node[lab, right, pos=.5]{Runtime API} |- ($(lb.south east)+(0,0.1)$);
+\draw[arr, dotted, thick] (ai.east) -- node[lab, above, pos=.45]{chỉ đọc} (graf.west);
+\end{tikzpicture}}
+\caption{Kiến trúc hệ thống. Nét liền: luồng request và lệnh điều khiển; nét đứt: thu thập metric và service discovery; nét chấm: trợ lý AI chỉ đọc (Prometheus, Nova với role \code{reader}, log autoscaler).}\label{fig:arch}
+\end{figure}
+
+Bảng~\ref{tab:ver} liệt kê thành phần và phiên bản đã dùng.
+
+\begin{table}[!htbp]
+\caption{Thành phần và phiên bản (ghim tại thời điểm cài đặt, tháng 11/2026)}\label{tab:ver}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lL@{}}
+\toprule
+Thành phần & Phiên bản / ghi chú \\
+\midrule
+Host & macOS 26.5, Lima 2.3.0 (vz, nested virtualization); Ubuntu 24.04, kernel 6.8 \\
+IaaS & OpenStack 2026.2 qua DevStack \code{stable/2026.2}: Nova 34, Neutron 29 (OVN 24.03), Glance, Keystone, Placement, Horizon; libvirt 10.0, QEMU 8.2 \\
+Image máy ảo & Ubuntu 24.04 arm64 cloud image tùy biến; JRE Temurin 21.0.13 (C2: JRE 25) \\
+Giám sát & Prometheus 3.16.0, Alertmanager 0.35.1, node\_exporter 1.10.2, Grafana 13.3.2 \\
+Ứng dụng & Spring Boot 3.5.7, Micrometer/Actuator \\
+Load balancer & HAProxy 2.8.30 \\
+Sinh tải & Apache JMeter 5.6.3 \\
+Autoscaler & Python 3.12, openstacksdk 4.25 \\
+Trợ lý AI & Ollama, Qwen3-8B (chạy trên GPU của Mac) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{IaaS: OpenStack và mạng}
+
+DevStack được cấu hình chỉ với các dịch vụ tối thiểu: Keystone, Nova, Placement, Neutron (driver OVN), Glance và Horizon; Cinder, Swift và Tempest bị tắt để tiết kiệm RAM. Nova dùng \code{virt\_type=kvm}, \code{cpu\_mode=host-passthrough} và tỷ lệ overcommit CPU 4.0.
+
+\textbf{Mạng.} Mạng external \code{public} (172.24.4.0/24) gắn với bridge \code{br-ex} trên host; host được NAT ra Internet qua card mạng của Lima. Mạng tenant \code{app-net} (10.10.0.0/24) nối với \code{router1} có SNAT ra mạng external. Security group \code{app-sg} mở các cổng 22, 8080 (ứng dụng), 9100 (node\_exporter) và ICMP. Host có route tới \code{app-net} qua cổng external của router, nhờ đó Prometheus và HAProxy chạm trực tiếp tới IP private của máy ảo mà không cần floating IP. Vì IP của \code{br-ex}, route và NAT do DevStack đặt không bền vững qua lần khởi động lại, nhóm viết một systemd service khôi phục chúng tự động khi boot.
+
+\textbf{Flavor và image.} Flavor \code{app.small} có 1 vCPU, 1~GB RAM, đĩa 6~GB; hạn mức project giới hạn tổng tài nguyên để không vượt khả năng của host. \textbf{GUI và API (1c)}: thao tác trên Horizon; ngoài ra script \code{docs/demo-1c-api.sh} minh họa luồng REST thuần: \code{POST /identity/v3/auth/tokens} lấy token, sau đó gọi \code{GET /compute/v2.1/flavors}, \code{/image/v2/images}, \code{/networking/v2.0/networks}, \code{POST /compute/v2.1/servers} và \code{DELETE}.
+
+\subsection{Giám sát tự động}
+
+\textbf{Agent tự cài (2a).} Phương án chính là \emph{golden image}: từ Ubuntu cloud image, công cụ \code{virt-customize} (libguestfs) nướng sẵn \code{node\_exporter}, JRE và ứng dụng cùng các unit systemd đã được bật. Máy ảo boot lên là có metric, không cần SSH hay chạy lệnh nào. Phương án phụ (cấu hình C0) dùng \emph{cloud-init} để tải và cài mọi thứ lúc boot; phương án này chậm hơn nhiều và được dùng làm đối chứng trong thực nghiệm.
+
+\textbf{Tự đăng ký (2b).} Prometheus dùng \code{openstack\_sd\_configs} (role \code{instance}) gọi Nova API mỗi 10~s để lấy danh sách máy ảo. Các luật relabel chỉ giữ lại máy có metadata \code{group=app}, \code{monitoring=enabled}, trạng thái \code{ACTIVE} và địa chỉ thuộc \code{app-net}; tên máy ảo được gắn làm nhãn \code{instance}. Máy ảo mới tạo tự trở thành target, máy bị xóa tự biến mất, không ai sửa file cấu hình. Hai job dùng chung cơ chế này: \code{node} (cổng 9100) và \code{app} (cổng 8080, đường dẫn \code{/actuator/prometheus}, cho RPS và độ trễ). Recording rule \code{app:cpu\_util:avg1m} tính CPU trung bình của cả nhóm trong cửa sổ 1 phút. Grafana được cấp sẵn (provisioning) datasource, dashboard tổng hợp tự thiết kế và dashboard \emph{Node Exporter Full}.
+
+\subsection{Sinh tải và autoscaling}
+
+\textbf{Ứng dụng và tải (3a).} Ứng dụng Spring Boot có endpoint \code{/work?n=...} băm SHA-256 lặp $n$ lần. Do lệnh SHA-256 được tăng tốc phần cứng trên ARM, $n$ được hiệu chỉnh bằng đo đạc lên 400\,000 (≈17~ms CPU mỗi request) để tải thực sự bị giới hạn bởi CPU. JMeter chạy profile bậc 25 phút từ Mac: 0–5 phút 2 luồng (nền), 5–7 phút tăng thêm 6 luồng, 7–13 phút thêm 8 luồng (đỉnh, 16 luồng), từ phút 15 về 2 luồng để quan sát scale-in. HAProxy phân phối theo \code{leastconn} và chỉ gửi request tới máy có \code{/actuator/health/readiness} trả 200.
+
+\textbf{Autoscaler (3b).} Autoscaler là một dịch vụ Python (openstacksdk) chạy vòng lặp điều khiển mỗi 15~s:
+\begin{enumerate}
+\item Truy vấn PromQL \code{app:cpu\_util:avg1m}.
+\item Nếu CPU $\geq 80\%$ trong $N=2$ chu kỳ liên tiếp và số máy dưới \code{max}=4: gọi Nova tạo một máy (image, flavor, mạng, metadata \code{group=app}); chờ \code{ACTIVE} và readiness 200; đưa IP vào một slot trống của HAProxy qua Runtime API (không cần reload).
+\item Nếu CPU $\leq 20\%$ trong $M=8$ chu kỳ và số máy trên \code{min}=1: chuyển máy mới nhất sang trạng thái \emph{drain}, chờ hết kết nối đang xử lý, gỡ khỏi HAProxy rồi xóa máy.
+\item Cooldown 60~s sau scale-out và 120~s sau scale-in; cửa sổ scale-in dài hơn scale-out để tránh flapping.
+\item Đối soát (reconcile) mỗi chu kỳ: backend HAProxy luôn khớp danh sách máy trên Nova; máy ở trạng thái \code{ERROR} được dọn và tạo lại sau cooldown.
+\end{enumerate}
+Mỗi quyết định được ghi thành một dòng JSON (thời điểm, CPU, số máy, hành động, kết quả), riêng scale-out ghi thêm thời gian từng giai đoạn: gọi API, boot đến ACTIVE, ACTIVE đến ứng dụng sẵn sàng, đăng ký vào load balancer. Alertmanager gửi cảnh báo \code{AppCpuHigh}/\code{AppCpuLow} tới autoscaler để ghi log minh họa; quyết định scale vẫn do autoscaler đưa ra.
+
+Nhóm không dùng Heat AutoScalingGroup với Ceilometer/Gnocchi/Aodh vì đề bài yêu cầu chính công cụ giám sát của công việc~2 điều khiển việc scale, và bộ Telemetry quá nặng cho laptop. Tự viết autoscaler còn giúp kiểm soát drain, cooldown và đo được thời gian phản ứng.
+
+\subsection{Các vấn đề đặc thù và cách khắc phục}
+
+Quá trình triển khai bộc lộ ba vấn đề làm hỏng hoặc làm chậm scale-out mà tài liệu DevStack thông thường (x86) không đề cập. Đây cũng là đóng góp thực tế chính của đồ án (Bảng~\ref{tab:fix}).
+
+\begin{enumerate}
+\item \textbf{Cloud-init không chạy trên Nova aarch64.} Máy ảo ACTIVE nhưng không có mạng. Nguyên nhân: trên aarch64, Nova không cung cấp thông tin DMI ``OpenStack Nova'' nên công cụ \code{ds-identify} của cloud-init kết luận không có datasource và tắt cloud-init, khiến netplan không được sinh. Khắc phục: bật \code{force\_config\_drive=True} cho Nova và cấu hình image chỉ dùng datasource ConfigDrive.
+\item \textbf{Dịch vụ chạy lần đầu của Ubuntu cloud image.} Lần boot đầu, snapd seeding (≈61~s), \code{cloud-config} (≈74~s), pollinate và \code{check-new-release} (85\% CPU) vừa làm chậm vừa làm CPU nền cao, khiến autoscaler không scale-in được. Khắc phục: gỡ các gói này khỏi golden image.
+\item \textbf{Thiếu huge page trong nested virtualization.} Máy ảo tạo khi host đang tải chạy chậm 30–40 lần ngay cả khi tự nó rảnh (vòng lặp chuẩn 11\,858~ms so với ≈300~ms). Đo \code{AnonHugePages} của tiến trình QEMU cho thấy máy chậm chỉ có 21\% bộ nhớ được cấp bằng trang 2~MB, so với ≈93\% ở máy bình thường: khi page cache đầy, kernel không gom được trang lớn, và với dịch địa chỉ hai tầng lồng nhau, mỗi lần TLB miss trở nên cực kỳ tốn kém. Khắc phục: dành sẵn 2\,560 huge page 2~MB trên host và gắn \code{hw:mem\_page\_size=large} cho flavor.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\caption{Ảnh hưởng của các khắc phục tới thời gian scale-out (đo trong các lần chạy thử)}\label{tab:fix}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}Lrr@{}}
+\toprule
+Tình huống & Trước & Sau \\
+\midrule
+Tổng thời gian scale-out (quyết định → VM nhận request), image gốc → image đã tinh gọn & 194–304~s & 52–60~s \\
+VM thứ 4 boot khi 3 VM khác chạy 100\% CPU: ACTIVE → ứng dụng sẵn sàng & 254–312~s & 47~s \\
+Vòng lặp chuẩn 300\,000 bước trong VM đó & 11\,858~ms & 261~ms \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Phần mở rộng}
+
+\textbf{Thời gian scale-out (``cold start'' ở tầng IaaS).} Thời gian khởi động máy ảo là yếu tố đã được chỉ ra là chi phối khả năng co giãn~\cite{mao}, tương tự bài toán cold start của serverless~\cite{serverless}. Nhóm đặt ba câu hỏi nghiên cứu: \emph{RQ1} – thời gian từ lúc tải vượt ngưỡng đến khi máy mới phục vụ request gồm những giai đoạn nào và mỗi giai đoạn chiếm bao nhiêu; \emph{RQ2} – mỗi kỹ thuật triển khai rút ngắn thời gian đó và giảm tỷ lệ request vượt SLO (1~s) bao nhiêu; \emph{RQ3} – bộ tham số autoscaler ảnh hưởng thế nào tới flapping, số máy ảo-giờ và độ trễ p95. Ba cấu hình được so sánh: C0 – image Ubuntu gốc, cloud-init cài JRE, node\_exporter và tải ứng dụng lúc boot; C1 – golden image; C2 – golden image với JRE 25, jar được giải nén và \emph{AOT cache} của Project Leyden (JEP 483/514/515)~\cite{leyden} được tạo bằng một lần chạy huấn luyện ngay trong quá trình build image.
+
+\textbf{Trợ lý vận hành AI.} Người vận hành hỏi bằng tiếng Việt (``Vì sao lúc 14:32 hệ thống thêm máy?'', ``Nếu hạ ngưỡng xuống 70\% thì sao?''). Mô hình Qwen3-8B chạy cục bộ bằng Ollama trên GPU của Mac, gọi các công cụ: truy vấn Prometheus, liệt kê máy ảo qua Nova, đọc log quyết định, xem trạng thái autoscaler, mô phỏng lại quyết định với ngưỡng khác trên dữ liệu CPU lịch sử, và \emph{tạo đề xuất} scale. Rào chắn: (i) trợ lý dùng user Keystone \code{ops-reader} chỉ có role \code{reader} – Nova trả 403 nếu user này tạo máy ảo; (ii) đề xuất chỉ được gửi tới autoscaler sau khi người vận hành gõ xác nhận trong CLI, và vẫn bị giới hạn min/max.
+
+%=====================================================================
+\section{Thực nghiệm và kết quả}
+
+Mọi thực nghiệm chạy trên cùng một máy (MacBook M4, 24~GB); kết quả có giá trị so sánh tương đối giữa các cấu hình, không đại diện cho cụm máy chủ thật.
+
+\subsection{Minh chứng các yêu cầu bắt buộc}
+
+\textbf{1a–1c.} Máy ảo boot từ golden image đạt ACTIVE sau khoảng 5–15~s; trong máy ảo, \code{ping 8.8.8.8} (RTT ≈29~ms) và \code{curl https://www.google.com} (HTTP 200) thành công qua router SNAT. Script REST lấy token Keystone và liệt kê flavor, image, network, server bằng \code{curl}. \textbf{2a–2b.} Máy ảo tạo bằng CLI, không SSH vào, xuất hiện ở Prometheus Targets với trạng thái \code{up} cho cả job \code{node} và \code{app} chỉ sau một chu kỳ service discovery. \textbf{3a–3b.} Profile tải chuẩn được chạy ba lần (Hình~\ref{fig:std}, Bảng~\ref{tab:std}).
+
+\begin{figure}[!htbp]
+\centering
+\fig{standard-runs.pdf}{\textwidth}
+\caption{Ba lần chạy profile tải chuẩn: CPU trung bình nhóm (trên) và số máy ảo do autoscaler quản lý (dưới). Vùng tô là giai đoạn tải cao.}\label{fig:std}
+\end{figure}
+
+\begin{table}[!htbp]
+\caption{Kết quả ba lần chạy profile tải chuẩn (độ trễ đo phía JMeter)}\label{tab:std}
+\centering\small
+\input{generated/standard.tex}
+\end{table}
+
+\ifhavestandard
+\input{generated/standard-scaleout.tex}
+\fi
+Trong mọi lần chạy, số máy tăng khi tải lên đỉnh, CPU trung bình giảm trở lại dưới ngưỡng sau khi máy mới tham gia, và máy dư được xóa sau khi tải giảm; không có request lỗi.
+
+\subsection{RQ1, RQ2: phân rã và tối ưu thời gian scale-out}
+
+Mỗi cấu hình được đo 10 lần. Mỗi lần, harness tạo một máy ảo và ghi các mốc ở phía host (gọi API, ACTIVE, readiness 200) và trong máy ảo (kernel bắt đầu, cloud-init kết thúc, JVM khởi chạy, thời gian khởi động Spring). Đồng hồ máy ảo đồng bộ với host qua RTC/arch timer, sai số khoảng 1~s. Độ trễ phát hiện được ước lượng riêng: chu kỳ scrape 5~s, cửa sổ \code{rate} 1 phút, đánh giá rule 5~s và $N=2$ chu kỳ 15~s, tức khoảng 30–45~s kể từ khi tải thực sự vượt ngưỡng.
+
+\begin{figure}[!htbp]
+\centering
+\fig{rq1-breakdown.pdf}{\textwidth}
+\caption{RQ1 – Phân rã thời gian scale-out (trung vị 10 lần) theo cấu hình.}\label{fig:rq1}
+\end{figure}
+
+\begin{table}[!htbp]
+\caption{RQ1/RQ2 – Thời gian các giai đoạn (giây, trung vị 10 lần đo)}\label{tab:rq12}
+\centering\scriptsize
+\input{generated/rq12.tex}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{RQ2 – Request vượt SLO 1~s trong giai đoạn tải tăng (300–900~s của profile)}\label{tab:slo}
+\centering\small
+\input{generated/rq2slo.tex}
+\end{table}
+
+\ifhaverqone
+Hình~\ref{fig:rq1} và Bảng~\ref{tab:rq12} cho thấy phần lớn thời gian nằm trong máy ảo (boot, cloud-init, khởi động JVM), trong khi các bước của OpenStack (gọi API, lập lịch, tạo VM) chỉ chiếm vài giây. Golden image loại bỏ thời gian cài đặt lúc boot; AOT cache rút ngắn tiếp phần khởi động Spring.
+\fi
+
+\subsection{RQ3: tham số autoscaler}
+
+Bốn bộ tham số được chạy với cùng profile tải: P1 mặc định (80/20\%, $N=2$, $M=8$, cooldown 60/120~s); P2 nhạy (70/30\%, $N=1$, $M=2$, 15/15~s); P3 bảo thủ (85/15\%, $N=4$, $M=16$, 120/300~s); P4 bất đối xứng (70/30\%, $N=1$, $M=8$, 30/120~s). Việc chọn cửa sổ và độ trễ khi giảm tài nguyên dài hơn khi tăng cũng là nguyên tắc của các hệ thống autoscaling quy mô lớn~\cite{autopilot}. \emph{Đảo chiều} là số lần một hành động scale ngược chiều với hành động trước đó xảy ra trong vòng 5 phút.
+
+\begin{table}[!htbp]
+\caption{RQ3 – Ảnh hưởng của bộ tham số}\label{tab:rq3}
+\centering\scriptsize
+\input{generated/rq3.tex}
+\end{table}
+
+\begin{figure}[!htbp]
+\centering
+\fig{rq3-vms.pdf}{\textwidth}
+\caption{RQ3 – Số máy ảo theo thời gian với bốn bộ tham số.}\label{fig:rq3}
+\end{figure}
+
+\subsection{Trợ lý vận hành AI}
+
+Bộ đánh giá gồm 20 câu hỏi về trạng thái hiện tại (số máy, CPU từng máy, RPS), cấu hình (ngưỡng, min/max), lịch sử (thời điểm và lý do scale, giai đoạn chậm nhất, số lần scale, lỗi) và câu hỏi giả định (đổi ngưỡng). Đáp án đúng được tính tự động từ chính nguồn dữ liệu (Prometheus, Nova, log autoscaler) ngay trước khi hỏi; câu trả lời được coi là đúng nếu chứa giá trị đáp án trong sai số cho phép. \input{generated/assistant.tex}
+
+\subsection{Giới hạn}
+
+(i) Toàn bộ hệ thống chạy trên một máy với nested virtualization nên số tuyệt đối (đặc biệt là thời gian boot) khác với máy chủ thật; (ii) metric scale-out là CPU trung bình nên phản ứng chậm hơn tín hiệu ở tầng ứng dụng như độ dài hàng đợi; (iii) mỗi cấu hình chỉ đo 10 lần; (iv) trợ lý AI được đánh giá trên bộ câu hỏi nhỏ do nhóm tự xây dựng.
+
+%=====================================================================
+\section{Phân chia công việc}
+
+\begin{table}[h]
+\caption{Phân công và mức đóng góp}\label{tab:team}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lLLr@{}}
+\toprule
+Thành viên & Phụ trách chính & Phụ trách phụ & Đóng góp \\
+\midrule
+Thành viên 1 & Kiến trúc tổng thể; mạng Neutron; tích hợp end-to-end & RQ1 & 20\% \\
+Thành viên 2 & Công việc 1: cài OpenStack, flavor, image, security group; demo GUI/API & Hướng dẫn cài đặt & 20\% \\
+Thành viên 3 & Công việc 2: golden image, node\_exporter, cloud-init, Prometheus SD, Grafana & RQ2 (C0, C1, C2) & 20\% \\
+Thành viên 4 & Công việc 3: ứng dụng, HAProxy, JMeter, autoscaler & RQ3 & 20\% \\
+Thành viên 5 & Trợ lý AI; bộ câu hỏi đánh giá; biên tập báo cáo & Video demo & 20\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=====================================================================
+\section{Hướng dẫn cài đặt và chạy}
+
+\textbf{Yêu cầu.} Mac Apple Silicon M3 trở lên, macOS 15 trở lên, 24~GB RAM, khoảng 150~GB đĩa trống; Homebrew, Docker (để build ứng dụng), Ollama (cho trợ lý). Hướng dẫn chi tiết từng lệnh nằm trong \code{README.md} của repo; các bước chính:
+\begin{enumerate}
+\item Clone repo; \code{brew install lima jmeter}; chạy \code{infra/lima/start.sh} để tạo VM host (nếu IP khác 192.168.64.2 thì chạy \code{infra/set-host-ip.sh}).
+\item Build ứng dụng Spring Boot bằng Maven (container \code{maven:3.9-eclipse-temurin-21}).
+\item Trong VM host: cài DevStack với \code{infra/devstack/local.conf} (≈40 phút), rồi chạy \code{post-install.sh} để tạo flavor, mạng, security group, keypair, huge page và service mạng.
+\item Build golden image và upload lên Glance (\code{infra/image/}).
+\item Cài giám sát (\code{monitoring/install.sh}), HAProxy (\code{lb/haproxy.cfg}) và autoscaler (\code{autoscaler/install.sh}); khoảng 1 phút sau autoscaler tự tạo máy ảo ứng dụng đầu tiên.
+\item Chạy tải: \code{loadtest/run-load.sh}; theo dõi trên Grafana (cổng 3000), Horizon (\code{/dashboard}) và log \code{/var/log/autoscaler/decisions.jsonl}.
+\end{enumerate}
+Phần mở rộng: \code{experiments/run-all.sh} chạy toàn bộ thực nghiệm; trợ lý AI chạy bằng \code{assistant/agent.py}.
+
+%=====================================================================
+\section{Tài liệu và mã nguồn tham khảo}
+
+Bảng~\ref{tab:decl} khai báo toàn bộ phần mềm, mã nguồn và tài nguyên được dùng lại cùng chức năng của từng phần.
+
+\begin{table}[!htbp]
+\caption{Khai báo phần mềm và mã nguồn dùng lại}\label{tab:decl}
+\centering\scriptsize
+\begin{tabularx}{\textwidth}{@{}lL@{}}
+\toprule
+Thành phần & Chức năng trong đồ án \\
+\midrule
+DevStack, OpenStack 2026.2~\cite{devstack} & Cài đặt và cung cấp IaaS (Nova, Neutron, Glance, Keystone, Horizon) \\
+Lima~\cite{lima} & Tạo VM host trên macOS với nested virtualization \\
+Ubuntu 24.04 cloud image; Eclipse Temurin JRE & Image gốc; môi trường chạy Java trong máy ảo \\
+libguestfs (\code{virt-customize}) & Build golden image \\
+Prometheus, Alertmanager, node\_exporter~\cite{prom} & Thu thập, lưu trữ metric; cảnh báo; agent trong máy ảo \\
+Grafana; dashboard Node Exporter Full (ID 1860)~\cite{grafana1860} & Hiển thị; dashboard dùng nguyên bản từ grafana.com \\
+HAProxy & Load balancer, Runtime API để thêm/bớt backend \\
+Spring Boot, Micrometer & Khung ứng dụng mẫu và metric HTTP \\
+Apache JMeter~\cite{jmeter} & Sinh tải theo profile \\
+openstacksdk, requests, PyYAML, prometheus-client & Thư viện của autoscaler và harness thực nghiệm \\
+Ollama, Qwen3-8B & LLM cục bộ cho trợ lý vận hành \\
+matplotlib, pandas & Phân tích và vẽ biểu đồ \\
+Template LNCS (llncs.cls) & Định dạng báo cáo \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mã nguồn do nhóm phát triển (cấu hình DevStack, script build image, cấu hình giám sát, autoscaler, harness thực nghiệm, trợ lý AI) nằm tại \url{https://github.com/DoThanhHY/it5404}.
+
+\begin{credits}
+\subsubsection{\discintname}
+Nhóm sử dụng trợ lý AI Claude (Anthropic) để hỗ trợ viết mã nguồn (script triển khai, cấu hình, autoscaler, harness thực nghiệm, trợ lý vận hành), chẩn đoán lỗi và soạn thảo báo cáo. Toàn bộ mã được nhóm chạy và kiểm chứng trên hệ thống thật; mọi số liệu trong báo cáo đều được đo từ hệ thống.
+\end{credits}
+
+\begin{thebibliography}{9}
+\bibitem{devstack} OpenStack Foundation: DevStack documentation, \url{https://docs.openstack.org/devstack/latest/}, truy cập 11/2026
+\bibitem{lima} Lima: Linux virtual machines on macOS, \url{https://lima-vm.io}, truy cập 11/2026
+\bibitem{prom} Prometheus: Configuration – openstack\_sd\_config, \url{https://prometheus.io/docs/prometheus/latest/configuration/configuration/}, truy cập 11/2026
+\bibitem{grafana1860} Grafana Labs: Node Exporter Full (dashboard 1860), \url{https://grafana.com/grafana/dashboards/1860}, truy cập 11/2026
+\bibitem{jmeter} Apache Software Foundation: Apache JMeter User's Manual, \url{https://jmeter.apache.org/usermanual/}, truy cập 11/2026
+\bibitem{mao} Mao, M., Humphrey, M.: A performance study on the VM startup time in the cloud. In: IEEE 5th International Conference on Cloud Computing (CLOUD), pp. 423--430. IEEE (2012)
+\bibitem{autopilot} Rzadca, K., et al.: Autopilot: workload autoscaling at Google. In: Proceedings of the 15th European Conference on Computer Systems (EuroSys). ACM (2020)
+\bibitem{serverless} Shahrad, M., et al.: Serverless in the wild: characterizing and optimizing the serverless workload at a large cloud provider. In: USENIX Annual Technical Conference (ATC), pp. 205--218 (2020)
+\bibitem{leyden} OpenJDK: JEP 483 – Ahead-of-Time Class Loading \& Linking; JEP 514 – AOT Command-Line Ergonomics; JEP 515 – AOT Method Profiling, \url{https://openjdk.org/projects/leyden/}, truy cập 11/2026
+\end{thebibliography}
+\end{document}

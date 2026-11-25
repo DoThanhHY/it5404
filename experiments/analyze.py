@@ -31,6 +31,7 @@ summary: dict = {}
 
 def save(fig, name):
     fig.savefig(FIG / name, facecolor="#fcfcfb")
+    fig.savefig(FIG / name.replace(".png", ".pdf"), facecolor="white")   # bản vector cho báo cáo LaTeX
     plt.close(fig)
     print("  ->", FIG / name)
 
