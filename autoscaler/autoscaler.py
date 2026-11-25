@@ -257,10 +257,18 @@ class Autoscaler:
         if self.busy.locked():
             return
         servers = self.app_servers()
+        for bad in [x for x in servers if x.status == "ERROR"]:   # vd "No valid host" lúc Nova vừa khởi động
+            self.dlog.write("cleanup_error_server", name=bad.name, server_id=bad.id,
+                            fault=(bad.fault or {}).get("message"))
+            if not self.dry_run:
+                self.conn.compute.delete_server(bad)
+        servers = [x for x in servers if x.status != "ERROR"]
         n = len(servers)
         G_DESIRED.set(n)
         self.reconcile(servers)
         if n < c["min_instances"]:
+            if time.time() - self.last_out < c["cooldown_out_s"]:   # backoff nếu lần trước lỗi
+                return
             threading.Thread(target=self._run_action, args=("out", {"why": "below_min", "n": n}), daemon=True).start()
             return
         cpu = self.query(c["cpu_query"])

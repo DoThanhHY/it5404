@@ -10,6 +10,10 @@ P=demo
 os() { openstack "$@"; }
 
 os flavor show app.small >/dev/null 2>&1 || os flavor create --vcpus 1 --ram 1024 --disk 6 app.small
+# Huge pages 2MB cho VM: trong nested virt, VM không có trang lớn chạy chậm ~25-40 lần (xem docs/troubleshooting.md)
+os flavor set app.small --property hw:mem_page_size=large
+echo "vm.nr_hugepages = 2560" | sudo tee /etc/sysctl.d/90-it5404-hugepages.conf >/dev/null
+sudo sysctl -q -p /etc/sysctl.d/90-it5404-hugepages.conf
 os quota set --instances 8 --cores 12 --ram 12288 $P
 
 source /opt/stack/devstack/openrc demo demo >/dev/null
@@ -29,12 +33,9 @@ fi
 [ -f ~/.ssh/id_ed25519 ] || ssh-keygen -t ed25519 -N '' -f ~/.ssh/id_ed25519 -q
 os keypair show it5404 >/dev/null 2>&1 || os keypair create --public-key ~/.ssh/id_ed25519.pub it5404
 
-# Route từ host tới app-net qua cổng external của router1
-GW=$(os router show router1 -f json -c external_gateway_info \
-     | jq -r '.external_gateway_info.external_fixed_ips[] | select(.ip_address|test("^172\\.")) .ip_address')
-sudo ip route replace 10.10.0.0/24 via "$GW"
-# SNAT cho dải floating ra Internet qua card mạng của host (phòng trường hợp devstack chưa thêm)
-DEV=$(ip route show default | awk 'NR==1{print $5}')
-sudo iptables -t nat -C POSTROUTING -s 172.24.4.0/24 -o "$DEV" -j MASQUERADE 2>/dev/null \
-  || sudo iptables -t nat -A POSTROUTING -s 172.24.4.0/24 -o "$DEV" -j MASQUERADE
-echo "OK: router1 gw=$GW, route 10.10.0.0/24 via $GW"
+# Mạng host (br-ex, route app-net, NAT) – cài thành systemd service để tự chạy lại khi boot
+sudo mkdir -p /opt/stack/it5404
+sudo install -m755 "$(dirname "$0")/host-network.sh" /opt/stack/it5404/host-network.sh
+sudo install -m644 "$(dirname "$0")/it5404-host-network.service" /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable it5404-host-network >/dev/null 2>&1
+sudo systemctl restart it5404-host-network && systemctl status it5404-host-network --no-pager -n 1 | tail -1

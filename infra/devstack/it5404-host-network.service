@@ -1,0 +1,10 @@
+[Unit]
+Description=IT5404 host networking (br-ex IP, route app-net, NAT)
+After=network-online.target openvswitch-switch.service devstack@n-cpu.service
+Wants=network-online.target
+[Service]
+Type=oneshot
+ExecStart=/opt/stack/it5404/host-network.sh
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

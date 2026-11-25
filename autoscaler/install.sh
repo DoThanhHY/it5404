@@ -24,7 +24,7 @@ sudo mkdir -p /var/log/autoscaler && sudo chown stack: /var/log/autoscaler
 sudo tee /etc/systemd/system/autoscaler.service >/dev/null <<UNIT
 [Unit]
 Description=IT5404 autoscaler
-After=network-online.target prometheus.service haproxy.service
+After=network-online.target prometheus.service haproxy.service devstack@n-cpu.service it5404-host-network.service
 [Service]
 User=stack
 WorkingDirectory=$DIR
