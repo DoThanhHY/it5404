@@ -1,0 +1,3 @@
+apiVersion: 1
+providers:
+  - {name: it5404, folder: IT5404, type: file, options: {path: /var/lib/grafana/dashboards/it5404}}

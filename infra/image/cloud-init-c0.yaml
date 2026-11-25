@@ -1,0 +1,27 @@
+#cloud-config
+# Cấu hình C0 (phương án phụ / baseline): image Ubuntu gốc, cloud-init tự cài mọi thứ lúc boot.
+# app.jar được tải từ HTTP server trên host: http://172.24.4.1:8000/app.jar
+packages: [openjdk-21-jre-headless]
+write_files:
+  - path: /etc/systemd/system/node_exporter.service
+    content: |
+      [Unit]
+      Description=node_exporter
+      [Service]
+      ExecStart=/usr/local/bin/node_exporter
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  - path: /etc/systemd/system/cpu-app.service
+    content: |
+      [Unit]
+      Description=cpu-app
+      [Service]
+      ExecStart=/usr/bin/java -XX:+UseSerialGC -Xmx512m -jar /opt/app/app.jar
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+runcmd:
+  - curl -fsSL https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-arm64.tar.gz | tar -xz -C /usr/local/bin --strip-components=1 node_exporter-1.10.2.linux-arm64/node_exporter
+  - mkdir -p /opt/app && curl -fsSL -o /opt/app/app.jar http://172.24.4.1:8000/app.jar
+  - systemctl daemon-reload && systemctl enable --now node_exporter cpu-app

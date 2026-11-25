@@ -1,0 +1,11 @@
+[Unit]
+Description=IT5404 CPU app (Spring Boot)
+After=network-online.target
+[Service]
+User=app
+WorkingDirectory=/opt/app
+ExecStartPre=+/bin/sh -c 'echo "app_start_epoch_ms $(date +%%s%%3N)" > /var/log/app-boot.txt'
+ExecStart=/opt/java/bin/java -XX:+UseSerialGC -Xmx512m -jar /opt/app/app.jar
+Restart=always
+[Install]
+WantedBy=multi-user.target

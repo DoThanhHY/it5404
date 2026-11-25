@@ -1,0 +1,6 @@
+app/target/
+loadtest/results/
+loadtest/results-last.log
+*.pyc
+__pycache__/
+.DS_Store

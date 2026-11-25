@@ -1,0 +1,48 @@
+# Prometheus – tự phát hiện máy ảo qua Nova API (openstack_sd_configs), không cần sửa file khi thêm/xóa VM.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+rule_files: [/etc/prometheus/rules.yml]
+alerting:
+  alertmanagers: [{static_configs: [{targets: ['127.0.0.1:9093']}]}]
+
+scrape_configs:
+  - job_name: node            # node_exporter trong mỗi VM app (golden image)
+    openstack_sd_configs: &os_sd
+      - role: instance
+        region: RegionOne
+        identity_endpoint: http://192.168.64.2/identity/v3
+        username: demo
+        password: secret
+        domain_name: Default
+        project_name: demo
+        port: 9100
+        refresh_interval: 10s
+    relabel_configs: &os_relabel
+      - {source_labels: [__meta_openstack_tag_group], regex: app, action: keep}     # metadata group=app
+      - {source_labels: [__meta_openstack_tag_monitoring], regex: enabled, action: keep}
+      - {source_labels: [__meta_openstack_address_pool], regex: app-net, action: keep}
+      - {source_labels: [__meta_openstack_instance_status], regex: ACTIVE, action: keep}
+      - {source_labels: [__meta_openstack_instance_name], target_label: instance}
+      - {source_labels: [__meta_openstack_instance_id], target_label: instance_id}
+
+  - job_name: app             # Spring Boot Actuator (RPS, latency)
+    metrics_path: /actuator/prometheus
+    openstack_sd_configs:
+      - role: instance
+        region: RegionOne
+        identity_endpoint: http://192.168.64.2/identity/v3
+        username: demo
+        password: secret
+        domain_name: Default
+        project_name: demo
+        port: 8080
+        refresh_interval: 10s
+    relabel_configs: *os_relabel
+
+  - job_name: haproxy
+    static_configs: [{targets: ['127.0.0.1:8405']}]
+  - job_name: autoscaler
+    static_configs: [{targets: ['127.0.0.1:9180']}]
+  - job_name: prometheus
+    static_configs: [{targets: ['127.0.0.1:9090']}]

@@ -1,0 +1,11 @@
+# Alertmanager chỉ để minh họa thông báo; quyết định scale do autoscaler đưa ra.
+route:
+  receiver: autoscaler-log
+  group_wait: 5s
+  group_interval: 30s
+  repeat_interval: 5m
+receivers:
+  - name: autoscaler-log
+    webhook_configs:
+      - url: http://127.0.0.1:9180/alerts     # autoscaler ghi alert vào log có cấu trúc
+        send_resolved: true

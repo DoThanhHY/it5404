@@ -1,0 +1,21 @@
+groups:
+  - name: app-autoscaling
+    rules:
+      - record: app:cpu_util:avg1m          # CPU trung bình (%) của cả nhóm VM app, cửa sổ 1 phút
+        expr: 100 * (1 - avg(rate(node_cpu_seconds_total{job="node",mode="idle"}[1m])))
+      - record: instance:cpu_util:avg1m
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{job="node",mode="idle"}[1m])))
+      - record: app:http_rps:1m
+        expr: sum(rate(http_server_requests_seconds_count{job="app",uri="/work"}[1m]))
+      - record: app:http_p95_seconds:1m
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="app",uri="/work"}[1m])))
+      - alert: AppCpuHigh
+        expr: app:cpu_util:avg1m >= 80
+        for: 30s
+        labels: {severity: warning}
+        annotations: {summary: "CPU trung bình nhóm app {{ $value | printf \"%.0f\" }}% ≥ 80% – sắp scale-out"}
+      - alert: AppCpuLow
+        expr: app:cpu_util:avg1m <= 20 and count(up{job="node"} == 1) > 1
+        for: 2m
+        labels: {severity: info}
+        annotations: {summary: "CPU trung bình nhóm app {{ $value | printf \"%.0f\" }}% ≤ 20% – sắp scale-in"}

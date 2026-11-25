@@ -1,0 +1,32 @@
+# Cấu hình autoscaler (RQ3 thay đổi các tham số ở đây)
+prometheus_url: http://127.0.0.1:9090
+cpu_query: app:cpu_util:avg1m          # recording rule, CPU trung bình nhóm VM (%)
+interval_s: 15                          # chu kỳ vòng lặp điều khiển
+scale_out_threshold: 80
+scale_in_threshold: 20
+scale_out_cycles: 2                     # N chu kỳ liên tiếp ≥ ngưỡng
+scale_in_cycles: 8                      # M chu kỳ liên tiếp ≤ ngưỡng (cửa sổ scale-in dài hơn)
+cooldown_out_s: 60
+cooldown_in_s: 120
+min_instances: 1
+max_instances: 4
+drain_s: 10
+ready_timeout_s: 600
+
+server:
+  name_prefix: app
+  image: app-golden                     # C1; C0 = ubuntu-24.04-base + user_data
+  flavor: app.small
+  network: app-net
+  security_group: app-sg
+  key_name: it5404
+  user_data_file: null                  # vd ../infra/image/cloud-init-c0.yaml cho C0
+  metadata: {group: app, monitoring: enabled}
+
+cloud: devstack                         # tên trong clouds.yaml (user demo, project demo)
+haproxy:
+  runtime: 127.0.0.1:9999
+  backend: app
+  slots: 10
+log_file: /var/log/autoscaler/decisions.jsonl
+api_listen: 127.0.0.1:9180
