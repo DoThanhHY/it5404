@@ -15,6 +15,10 @@ os flavor set app.small --property hw:mem_page_size=large
 echo "vm.nr_hugepages = 2560" | sudo tee /etc/sysctl.d/90-it5404-hugepages.conf >/dev/null
 sudo sysctl -q -p /etc/sysctl.d/90-it5404-hugepages.conf
 os quota set --instances 8 --cores 12 --ram 12288 $P
+# Glance unified limits: DevStack mặc định image_size_total = 2000 MB, không đủ cho 3 image (C0, C1, C2)
+for L in $(os registered limit list --service glance -f value -c ID -c "Resource Name" | awk '$2=="image_size_total"{print $1}'); do
+  os registered limit set "$L" --default-limit 10000 >/dev/null
+done
 
 source /opt/stack/devstack/openrc demo demo >/dev/null
 os network show app-net >/dev/null 2>&1 || os network create app-net
