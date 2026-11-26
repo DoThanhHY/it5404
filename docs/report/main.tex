@@ -29,6 +29,11 @@
 \renewcommand{\ackname}{Lời cảm ơn}
 \renewcommand{\discintname}{Khai báo sử dụng công cụ AI}
 \newcommand{\code}[1]{\texttt{#1}}
+% Cho phép nhiều hình/bảng trên một trang, tránh trang trống
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}\renewcommand{\floatpagefraction}{0.85}
+\setcounter{topnumber}{3}\setcounter{bottomnumber}{2}\setcounter{totalnumber}{5}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}\setlength{\floatsep}{8pt plus 2pt minus 2pt}
 \setlength{\emergencystretch}{3em}
 \newcolumntype{L}{>{\raggedright\arraybackslash}X}
 
@@ -37,6 +42,7 @@
 \input{generated/haverqone.tex}
 \input{generated/haveslo.tex}
 \input{generated/haverqthree.tex}
+\newcommand{\shot}[2]{\IfFileExists{../figures/screens/#1}{\fbox{\includegraphics[width=\dimexpr#2-2\fboxsep-2\fboxrule\relax]{../figures/screens/#1}}}{\fbox{\parbox{#2}{\centering\vspace{1cm}[ảnh #1]\vspace{1cm}}}}}
 \newcommand{\fig}[2]{\IfFileExists{../figures/#1}{\includegraphics[width=#2]{../figures/#1}}%
   {\fbox{\parbox{0.9\textwidth}{\centering\vspace{1.5em}\textit{Biểu đồ \code{#1} sẽ xuất hiện khi thực nghiệm hoàn tất.}\vspace{1.5em}}}}}
 
@@ -70,7 +76,7 @@ Báo cáo trình bày việc xây dựng một hệ thống IaaS hoàn chỉnh c
 
 Ràng buộc thực tế của nhóm là chỉ có laptop cá nhân. Hệ thống do đó phải nhẹ (bỏ các dịch vụ không cần thiết như Cinder, Swift, Telemetry, Octavia) nhưng vẫn là OpenStack thật, gọi API thật. Bảng~\ref{tab:map} ánh xạ từng yêu cầu sang giải pháp và cách chứng minh.
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{Ánh xạ yêu cầu đề bài với giải pháp}\label{tab:map}
 \centering\small
 \begin{tabularx}{\textwidth}{@{}p{2.6cm}LL@{}}
@@ -95,7 +101,7 @@ Yêu cầu & Giải pháp & Cách chứng minh \\
 
 Hình~\ref{fig:arch} mô tả kiến trúc. Máy thật là MacBook Apple M4 (10 nhân, 24~GB RAM). Trên đó, Lima~\cite{lima} tạo một máy ảo Ubuntu 24.04 arm64 (8 vCPU, 16~GB RAM) bằng Apple Virtualization.framework với \emph{nested virtualization} – tính năng có trên chip M3 trở lên với macOS~15 trở lên – nên bên trong có \code{/dev/kvm} và Nova chạy được KVM thay vì giả lập QEMU. Máy ảo này (gọi là \emph{host}) chạy DevStack cùng toàn bộ hệ thống giám sát, load balancer và autoscaler; các máy ảo ứng dụng do OpenStack tạo là máy ảo lồng (L2).
 
-\begin{figure}[!htbp]
+\begin{figure}[!tbp]
 \centering
 \resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[font=\footnotesize,
@@ -137,7 +143,7 @@ Hình~\ref{fig:arch} mô tả kiến trúc. Máy thật là MacBook Apple M4 (10
 
 Bảng~\ref{tab:ver} liệt kê thành phần và phiên bản đã dùng.
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{Thành phần và phiên bản (ghim tại thời điểm cài đặt, tháng 11/2026)}\label{tab:ver}
 \centering\small
 \begin{tabularx}{\textwidth}{@{}lL@{}}
@@ -197,7 +203,7 @@ Quá trình triển khai bộc lộ ba vấn đề làm hỏng hoặc làm chậ
 \item \textbf{Thiếu huge page trong nested virtualization.} Máy ảo tạo khi host đang tải chạy chậm 30–40 lần ngay cả khi tự nó rảnh (vòng lặp chuẩn 11\,858~ms so với ≈300~ms). Đo \code{AnonHugePages} của tiến trình QEMU cho thấy máy chậm chỉ có 21\% bộ nhớ được cấp bằng trang 2~MB, so với ≈93\% ở máy bình thường: khi page cache đầy, kernel không gom được trang lớn, và với dịch địa chỉ hai tầng lồng nhau, mỗi lần TLB miss trở nên cực kỳ tốn kém. Khắc phục: dành sẵn 2\,560 huge page 2~MB trên host và gắn \code{hw:mem\_page\_size=large} cho flavor.
 \end{enumerate}
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{Ảnh hưởng của các khắc phục tới thời gian scale-out (đo trong các lần chạy thử)}\label{tab:fix}
 \centering\small
 \begin{tabularx}{\textwidth}{@{}Lrr@{}}
@@ -224,15 +230,30 @@ Mọi thực nghiệm chạy trên cùng một máy (MacBook M4, 24~GB); kết q
 
 \subsection{Minh chứng các yêu cầu bắt buộc}
 
-\textbf{1a–1c.} Máy ảo boot từ golden image đạt ACTIVE sau khoảng 5–15~s; trong máy ảo, \code{ping 8.8.8.8} (RTT ≈29~ms) và \code{curl https://www.google.com} (HTTP 200) thành công qua router SNAT. Script REST lấy token Keystone và liệt kê flavor, image, network, server bằng \code{curl}. \textbf{2a–2b.} Máy ảo tạo bằng CLI, không SSH vào, xuất hiện ở Prometheus Targets với trạng thái \code{up} cho cả job \code{node} và \code{app} chỉ sau một chu kỳ service discovery. \textbf{3a–3b.} Profile tải chuẩn được chạy ba lần (Hình~\ref{fig:std}, Bảng~\ref{tab:std}).
+\textbf{1a–1c.} Máy ảo boot từ golden image đạt ACTIVE sau khoảng 5–15~s; trong máy ảo, \code{ping 8.8.8.8} (RTT ≈29~ms) và \code{curl https://www.google.com} (HTTP 200) thành công qua router SNAT. Script REST lấy token Keystone và liệt kê flavor, image, network, server bằng \code{curl}; Hình~\ref{fig:shots}a là giao diện Horizon. \textbf{2a–2b.} Máy ảo tạo bằng CLI, không SSH vào, xuất hiện ở Prometheus Targets với trạng thái \code{up} cho cả job \code{node} và \code{app} chỉ sau một chu kỳ service discovery. Hình~\ref{fig:shots}b chụp lúc autoscaler vừa tạo thêm máy: các máy mới tự có mặt trong danh sách target mà không ai sửa cấu hình. \textbf{3a–3b.} Profile tải chuẩn được chạy ba lần (Hình~\ref{fig:std}, Bảng~\ref{tab:std}); Hình~\ref{fig:grafana} là dashboard Grafana của lần chạy thứ ba.
 
-\begin{figure}[!htbp]
+\begin{figure}[!tbp]
 \centering
-\fig{standard-runs.pdf}{\textwidth}
+\shot{horizon-instances.png}{\textwidth}\\[2pt]
+{\small (a) Horizon: danh sách máy ảo của project \code{demo} do autoscaler tạo (tên \code{app-*}, image \code{app-golden}, flavor \code{app.small}).}\\[6pt]
+\shot{prometheus-targets.png}{\textwidth}\\[2pt]
+{\small (b) Prometheus Targets: job \code{app} và \code{node} của mọi máy ảo trong \code{app-net} được phát hiện tự động qua Nova API.}
+\caption{Minh chứng công việc 1c và 2b, chụp trong lúc chạy tải (\textasciitilde 12 phút sau khi bắt đầu).}\label{fig:shots}
+\end{figure}
+
+\begin{figure}[!tbp]
+\centering
+\shot{grafana-standard-run.png}{\textwidth}
+\caption{Dashboard Grafana tự thiết kế trong lần chạy chuẩn thứ ba: CPU trung bình nhóm với hai ngưỡng 80/20\%, số máy ảo đang được giám sát so với số mong muốn, CPU từng máy, RPS, p95 và lỗi 5xx (bằng 0).}\label{fig:grafana}
+\end{figure}
+
+\begin{figure}[!tbp]
+\centering
+\fig{standard-runs.pdf}{0.88\textwidth}
 \caption{Ba lần chạy profile tải chuẩn: CPU trung bình nhóm (trên) và số máy ảo do autoscaler quản lý (dưới). Vùng tô là giai đoạn tải cao.}\label{fig:std}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{Kết quả ba lần chạy profile tải chuẩn (độ trễ đo phía JMeter)}\label{tab:std}
 \centering\small
 \input{generated/standard.tex}
@@ -247,27 +268,22 @@ Trong mọi lần chạy, số máy tăng khi tải lên đỉnh, CPU trung bìn
 
 Mỗi cấu hình được đo 10 lần. Mỗi lần, harness tạo một máy ảo và ghi các mốc ở phía host (gọi API, ACTIVE, readiness 200) và trong máy ảo (kernel bắt đầu, cloud-init kết thúc, JVM khởi chạy, thời gian khởi động Spring). Đồng hồ máy ảo đồng bộ với host qua RTC/arch timer, sai số khoảng 1~s. Độ trễ phát hiện được ước lượng riêng: chu kỳ scrape 5~s, cửa sổ \code{rate} 1 phút, đánh giá rule 5~s và $N=2$ chu kỳ 15~s, tức khoảng 30–45~s kể từ khi tải thực sự vượt ngưỡng.
 
-\begin{figure}[!htbp]
+\begin{figure}[!tbp]
 \centering
-\fig{rq1-breakdown.pdf}{\textwidth}
+\fig{rq1-breakdown.pdf}{0.8\textwidth}
 \caption{RQ1 – Phân rã thời gian scale-out (trung vị 10 lần) theo cấu hình.}\label{fig:rq1}
 \end{figure}
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{RQ1/RQ2 – Thời gian các giai đoạn (giây, trung vị 10 lần đo)}\label{tab:rq12}
 \centering\scriptsize
 \input{generated/rq12.tex}
 \end{table}
 
-\begin{table}[!htbp]
-\caption{RQ2 – Request vượt SLO 1~s trong giai đoạn tải tăng (300–900~s của profile)}\label{tab:slo}
-\centering\small
-\input{generated/rq2slo.tex}
-\end{table}
 
-\begin{figure}[!htbp]
+\begin{figure}[!tbp]
 \centering
-\fig{rq2-slo.pdf}{0.85\textwidth}
+\fig{rq2-slo.pdf}{0.75\textwidth}
 \caption{RQ2 – Độ trễ p50/p95/p99 trong giai đoạn tải tăng với ba cấu hình.}\label{fig:rq2}
 \end{figure}
 
@@ -278,22 +294,22 @@ Hình~\ref{fig:rq1} và Bảng~\ref{tab:rq12} cho thấy phần lớn thời gia
 \fi
 
 \ifhaveslo
-Về phía người dùng (Hình~\ref{fig:rq2}, Bảng~\ref{tab:slo}), không cấu hình nào có request vượt SLO 1~s, vì profile tăng tải từng bậc và máy hiện có vẫn phục vụ được (chậm hơn) trong lúc chờ máy mới. Khác biệt thể hiện ở độ trễ. Trong giai đoạn tải tăng, C0 có p50 96~ms và p95 185~ms, còn C1 và C2 chỉ khoảng 21--23~ms và 121--123~ms, vì máy mới của C0 tham gia muộn hơn gần 30~s. Giữa C1 và C2 không có khác biệt đáng kể: 5~s tiết kiệm được nhỏ so với độ trễ phát hiện 30--45~s và chu kỳ cooldown. Như vậy, golden image là tối ưu đáng giá nhất; AOT cache hữu ích khi ứng dụng khởi động chậm hơn hoặc khi tải tăng đột ngột hơn.
+Về phía người dùng (Hình~\ref{fig:rq2}; khoảng 36--51 nghìn request mỗi cấu hình trong giai đoạn 300--900~s), không cấu hình nào có request vượt SLO 1~s, vì profile tăng tải từng bậc và máy hiện có vẫn phục vụ được (chậm hơn) trong lúc chờ máy mới. Khác biệt thể hiện ở độ trễ. Trong giai đoạn tải tăng, C0 có p50 96~ms và p95 185~ms, còn C1 và C2 chỉ khoảng 21--23~ms và 121--123~ms, vì máy mới của C0 tham gia muộn hơn gần 30~s. Giữa C1 và C2 không có khác biệt đáng kể: 5~s tiết kiệm được nhỏ so với độ trễ phát hiện 30--45~s và chu kỳ cooldown. Như vậy, golden image là tối ưu đáng giá nhất; AOT cache hữu ích khi ứng dụng khởi động chậm hơn hoặc khi tải tăng đột ngột hơn.
 \fi
 
 \subsection{RQ3: tham số autoscaler}
 
 Bốn bộ tham số được chạy với cùng profile tải: P1 mặc định (80/20\%, $N=2$, $M=8$, cooldown 60/120~s); P2 nhạy (70/30\%, $N=1$, $M=2$, 15/15~s); P3 bảo thủ (85/15\%, $N=4$, $M=16$, 120/300~s); P4 bất đối xứng (70/30\%, $N=1$, $M=8$, 30/120~s). Việc chọn cửa sổ và độ trễ khi giảm tài nguyên dài hơn khi tăng cũng là nguyên tắc của các hệ thống autoscaling quy mô lớn~\cite{autopilot}. \emph{Đảo chiều} là số lần một hành động scale ngược chiều với hành động trước đó xảy ra trong vòng 5 phút.
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{RQ3 – Ảnh hưởng của bộ tham số}\label{tab:rq3}
 \centering\scriptsize
 \input{generated/rq3.tex}
 \end{table}
 
-\begin{figure}[!htbp]
+\begin{figure}[!tbp]
 \centering
-\fig{rq3-vms.pdf}{\textwidth}
+\fig{rq3-vms.pdf}{0.88\textwidth}
 \caption{RQ3 – Số máy ảo theo thời gian với bốn bộ tham số.}\label{fig:rq3}
 \end{figure}
 
@@ -347,7 +363,7 @@ Phần mở rộng: \code{experiments/run-all.sh} chạy toàn bộ thực nghi�
 
 Bảng~\ref{tab:decl} khai báo toàn bộ phần mềm, mã nguồn và tài nguyên được dùng lại cùng chức năng của từng phần.
 
-\begin{table}[!htbp]
+\begin{table}[!tbp]
 \caption{Khai báo phần mềm và mã nguồn dùng lại}\label{tab:decl}
 \centering\scriptsize
 \begin{tabularx}{\textwidth}{@{}lL@{}}

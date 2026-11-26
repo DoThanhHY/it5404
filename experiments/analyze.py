@@ -64,7 +64,7 @@ def vm_hours(ts):
 # ---------------- 3a/3b: 3 lần chạy chuẩn ----------------
 runs = sorted(glob.glob(str(ROOT / "loadtest/results/standard-*")))
 if runs:
-    fig, (a1, a2) = plt.subplots(2, 1, figsize=(7.2, 5.2), sharex=True)
+    fig, (a1, a2) = plt.subplots(2, 1, figsize=(5.6, 4.3), sharex=True)
     rows = []
     for i, r in enumerate(runs):
         ts = pd.read_csv(f"{r}/timeseries.csv")
@@ -80,14 +80,14 @@ if runs:
                      "scale_out_total_s": [e["phases_s"]["total"] for e in outs]})
     for y in (80, 20):
         a1.axhline(y, color=INK2, lw=1, ls="--")
-        a1.text(0.2, y + 2, f"ngưỡng {y}%", color=INK2, fontsize=8)
+        a1.text(29, y + (2 if y > 50 else -7), f"ngưỡng {y}%", color=INK2, fontsize=8, ha="right")
     a1.set(ylabel="CPU trung bình nhóm (%)", ylim=(0, 105), title="CPU trung bình nhóm VM app theo thời gian")
     a2.set(ylabel="Số VM app", xlabel="Thời gian từ lúc bắt đầu tải (phút)", title="Số máy ảo (autoscaler)")
     a2.set_yticks(range(0, 5))
-    a1.legend(loc="upper right", ncol=3)
+    a2.legend(loc="upper right", ncol=1, fontsize=8)
     for a in (a1, a2):
         a.axvspan(5, 13, color=GRID, alpha=.35, lw=0)
-    a1.text(9, 98, "giai đoạn tải cao", ha="center", color=INK2, fontsize=8)
+    a2.text(9, 3.55, "giai đoạn tải cao", ha="center", color=INK2, fontsize=8)
     save(fig, "standard-runs.png")
     summary["standard_runs"] = rows
 
@@ -110,7 +110,7 @@ if bench:
                        "spring_median": df.spring_start_s.median(), "n": len(df)})
     P = pd.DataFrame(phases).set_index("config")
     cols = [c for c in P.columns if not c.startswith(("ready", "spring", "n")) and P[c].max() >= 0.05]
-    fig, ax = plt.subplots(figsize=(7.2, 2.2 + 0.45 * len(P)))
+    fig, ax = plt.subplots(figsize=(5.6, 1.9 + 0.42 * len(P)))
     left = pd.Series(0.0, index=P.index)
     for i, c in enumerate(cols):
         ax.barh(P.index, P[c], left=left, color=S[i], label=c, height=0.55, edgecolor="#fcfcfb", linewidth=2)
@@ -119,7 +119,7 @@ if bench:
         ax.text(tot + 2, cfg, f"{tot:.0f} s", va="center", color=INK, fontsize=9)
     ax.invert_yaxis()
     ax.set(xlabel="Thời gian từ lúc gọi API (giây, trung vị)", title="RQ1 – Phân rã thời gian scale-out theo cấu hình")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.32), ncol=2, fontsize=8)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.45, -0.3), ncol=1, fontsize=8)
     ax.grid(axis="y", visible=False)
     save(fig, "rq1-breakdown.png")
     summary["rq1_rq2_bench"] = json.loads(P.round(2).reset_index().to_json(orient="records", force_ascii=False))
@@ -133,7 +133,7 @@ for c in ("C0", "C1", "C2"):
     if p.exists():
         slo[c] = {"tang_tai_300_900s": jtl_stats(p, 300, 900), "toan_bo": jtl_stats(p)}
 if slo:
-    fig, ax = plt.subplots(figsize=(6.4, 3.0))
+    fig, ax = plt.subplots(figsize=(5.2, 2.9))
     xs = list(slo)
     w = 0.25
     for j, q in enumerate(("p50_ms", "p95_ms", "p99_ms")):
@@ -164,13 +164,19 @@ for d in sorted(glob.glob(str(ROOT / "experiments/results/rq3/P*"))):
                 "p95_ms": st["p95_ms"], "slo_violation_pct": st["slo_violation_pct"], "error_pct": st["error_pct"],
                 "ts": ts})
 if rq3:
-    fig, axes = plt.subplots(len(rq3), 1, figsize=(7.2, 1.6 * len(rq3) + 0.8), sharex=True, sharey=True)
-    fig.subplots_adjust(hspace=0.7)
-    for i, (r, ax) in enumerate(zip(rq3, axes)):
+    ncol = 2
+    nrow = (len(rq3) + ncol - 1) // ncol
+    fig, axes = plt.subplots(nrow, ncol, figsize=(5.8, 1.95 * nrow + 0.6), sharex=True, sharey=True, squeeze=False)
+    fig.subplots_adjust(hspace=0.62, wspace=0.08, top=0.84)
+    flat = axes.ravel()
+    for r, ax in zip(rq3, flat):
         ax.step(r["ts"].t_s / 60, r["ts"].vms, where="post", color=S[0])
-        ax.set_title(f"{r['set']}: {r['params']}", loc="left", fontsize=8.5)
+        ax.set_title(f"{r['set']}: " + r["params"].replace(", cd=", "\ncooldown ").replace("s", " s"), loc="left", fontsize=8)
         ax.set_yticks(range(0, 5))
-    axes[-1].set_xlabel("Thời gian từ lúc bắt đầu tải (phút)")
+    for ax in axes[-1]:
+        ax.set_xlabel("Phút từ lúc bắt đầu tải")
+    for ax in flat[len(rq3):]:
+        ax.set_visible(False)
     fig.supylabel("Số VM app", color=INK2, fontsize=9)
     fig.suptitle("RQ3 – Số máy ảo theo thời gian với các bộ tham số", fontweight="bold", fontsize=10)
     save(fig, "rq3-vms.png")
